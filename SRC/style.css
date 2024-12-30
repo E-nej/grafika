@@ -1,0 +1,45 @@
+body, html {
+    margin: 0;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+  }
+  
+  canvas {
+    display: block;
+    background-color: #ddd; /* Light gray background for debugging */
+  }
+  
+  #menu {
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translate(-50%, -10%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+  }
+  
+  #menu.hidden {
+    display: none;
+  }
+  
+  #menu h1 {
+    margin-top: 0;
+  }
+  
+  #menu label {
+    display: block;
+    margin: 10px 0 5px;
+  }
+  
+  #menu input, #menu select, #menu button {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
