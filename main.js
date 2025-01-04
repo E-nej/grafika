@@ -68,6 +68,14 @@ document.addEventListener('keydown', (event) => {
     case 'd':
       keys.d = true;
       break;
+    case ' ': // Space key toggles animation
+      isAnimating = !isAnimating; // Toggle animation state
+      console.log(`Animation is now ${isAnimating ? 'running' : 'paused'}`);
+      break;
+    case 'r': // R key reloads the page
+      console.log('Reloading the page...');
+      location.reload(); // Reload the page
+      break;
   }
 });
 
