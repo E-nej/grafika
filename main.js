@@ -2,7 +2,6 @@ import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 
-
 // Movement speed for the camera
 const cameraSpeed = 1; // Adjust this value for faster/slower movement
 
@@ -13,8 +12,6 @@ const keys = {
   s: false,
   d: false,
 };
-
-
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
@@ -90,6 +87,7 @@ document.addEventListener('keyup', (event) => {
       break;
   }
 });
+
 function updateCameraMovement() {
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
@@ -106,6 +104,11 @@ function updateCameraMovement() {
   if (keys.d) camera.position.add(right.clone().multiplyScalar(cameraSpeed)); // Move right
 }
 
+// Objects and animation flag
+let motorist; // Reference for the motorist object
+let car; // Reference for the car object
+let isAnimating = false; // Flag to start/stop the animation
+
 // Handle the "Start Animation" button
 startButton.addEventListener('click', () => {
   const selectedScene = sceneSelect.value;
@@ -116,8 +119,9 @@ startButton.addEventListener('click', () => {
   // Hide the menu
   menu.classList.add('hidden');
 
-  // Start animation logic based on scene and distance
+  // Start animation logic
   startAnimation(selectedScene, distance);
+  isAnimating = true; // Enable animation
 });
 
 // ===== Load and Place the Road Sections =====
@@ -140,13 +144,9 @@ function createStraightRoad(roadLength) {
         }
       });
 
-      // Apply rotation to align correctly (around the y-axis or another axis as needed)
-      //object.rotation.x = -Math.PI / 2; // Lay flat on the ground
-      object.rotation.y = Math.PI / 2;  // Rotate 90° around the Y-axis (example)
-      // object.rotation.z = Math.PI / 4; // Optional: rotate around Z-axis if needed
-
-      // Position the road section to connect with the previous one
-      object.position.set(0, 0, i * 5); // Position along the Z-axis (adjust increment as needed)
+      // Correct rotation to ensure road is flat
+      object.rotation.y = -Math.PI / 2; // Lay flat on the ground
+      object.position.set(0, 0, i * 5); // Position along the Z-axis
 
       // Add the road section to the scene
       scene.add(object);
@@ -155,10 +155,6 @@ function createStraightRoad(roadLength) {
     });
   }
 }
-
-
-
-
 
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
@@ -171,39 +167,40 @@ function startAnimation(sceneId, distance) {
   }
 
   // Create the road
-  createStraightRoad(5); // Create a road with 20 sections
+  createStraightRoad(5); // Create a road with 10 sections
 
   const objLoader = new OBJLoader();
-
   const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-  if (sceneId === '1') {
-    // Load motorist.obj for Scene 1
-    objLoader.load('./models/motorist.obj', (object) => {
-      centerAndScaleObject(object, 0.1); // Center and scale the model
-      object.traverse((child) => {
-        if (child.isMesh) {
-          child.material = whiteMaterial; // Apply the white material
-        }
-      });
-      object.position.set(0, 1, 10); // Place motorist on the road
-      scene.add(object);
+  // Load motorist.obj
+  objLoader.load('./models/motorist.obj', (object) => {
+    centerAndScaleObject(object, 0.15); // Scale up the motorist
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = whiteMaterial; // Apply white material
+      }
     });
-  } else if (sceneId === '2') {
-    // Load avto.obj for Scene 2
-    objLoader.load('./models/avto.obj', (object) => {
-      centerAndScaleObject(object, 0.1); // Center and scale the model
-      object.traverse((child) => {
-        if (child.isMesh) {
-          child.material = whiteMaterial; // Apply the white material
-        }
-      });
-      object.position.set(0, 1, -10); // Place car on the road
-      scene.add(object);
+    object.rotation.y = Math.PI / 2; // Rotate to align with road
+    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
+    scene.add(object);
+
+    motorist = object; // Save reference to motorist
+  });
+
+  // Load avto.obj
+  objLoader.load('./models/avto.obj', (object) => {
+    centerAndScaleObject(object, 0.1); // Scale and center the model
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = whiteMaterial; // Apply white material
+      }
     });
-  } else {
-    console.log(`Unknown scene ID: ${sceneId}`);
-  }
+    object.rotation.y = Math.PI / 2; // Rotate to align with road
+    object.position.set(0, 0.2, -10); // Position the car slightly above the road
+    scene.add(object);
+
+    car = object; // Save reference to car
+  });
 }
 
 // ===== Utility Function to Center and Scale Objects =====
@@ -216,7 +213,6 @@ function centerAndScaleObject(object, scaleFactor) {
   object.scale.set(scaleFactor, scaleFactor, scaleFactor); // Scale down
 }
 
-
 // ===== Animation Loop =====
 function animate() {
   requestAnimationFrame(animate);
@@ -226,6 +222,16 @@ function animate() {
 
   // Update camera movement
   updateCameraMovement();
+
+  // Move objects if animation is enabled
+  if (isAnimating) {
+    if (motorist) {
+      motorist.position.z -= 0.05; // Move motorist forward
+    }
+    if (car) {
+      car.position.z -= 0.05; // Move car forward
+    }
+  }
 
   // Render the scene
   renderer.render(scene, camera);
