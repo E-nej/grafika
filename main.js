@@ -2,6 +2,7 @@ import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 
+
 // Movement speed for the camera
 const cameraSpeed = 1; // Adjust this value for faster/slower movement
 
@@ -12,6 +13,8 @@ const keys = {
   s: false,
   d: false,
 };
+
+
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
@@ -32,6 +35,13 @@ controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 5;
 controls.maxDistance = 50;
+
+// ===== Add Helpers for Debugging =====
+const gridHelper = new THREE.GridHelper(100, 100);
+scene.add(gridHelper);
+
+const axesHelper = new THREE.AxesHelper(5);
+scene.add(axesHelper);
 
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
@@ -80,7 +90,6 @@ document.addEventListener('keyup', (event) => {
       break;
   }
 });
-
 function updateCameraMovement() {
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
@@ -114,24 +123,42 @@ startButton.addEventListener('click', () => {
 // ===== Load and Place the Road Sections =====
 function createStraightRoad(roadLength) {
   const objLoader = new OBJLoader();
-  const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 }); // Gray color for road
+  const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 }); // Gray material for the road
 
-  for (let i = 0; i < roadLength; i++) {
-    objLoader.load('./models/Streight.obj', (object) => {
-      centerAndScaleObject(object, 1); // Center and scale each road section
+  for (let i = -roadLength; i <= roadLength; i++) {
+    objLoader.load('./models/cesta.obj', (object) => {
+      if (!object) {
+        console.error('Failed to load the cesta.obj file.');
+        return;
+      }
+
+      // Center and scale each road section
+      centerAndScaleObject(object, 0.5); // Adjust the scale factor as needed
       object.traverse((child) => {
         if (child.isMesh) {
           child.material = roadMaterial; // Apply the road material
         }
       });
 
-      // Rotate and position the road section
-      object.rotation.x = -Math.PI / 2; // Ensure it's flat
-      object.position.set(0, 0, i * 10); // Position along the Z-axis
+      // Apply rotation to align correctly (around the y-axis or another axis as needed)
+      //object.rotation.x = -Math.PI / 2; // Lay flat on the ground
+      object.rotation.y = Math.PI / 2;  // Rotate 90° around the Y-axis (example)
+      // object.rotation.z = Math.PI / 4; // Optional: rotate around Z-axis if needed
+
+      // Position the road section to connect with the previous one
+      object.position.set(0, 0, i * 5); // Position along the Z-axis (adjust increment as needed)
+
+      // Add the road section to the scene
       scene.add(object);
+
+      console.log(`Road section ${i} added at position:`, object.position);
     });
   }
 }
+
+
+
+
 
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
@@ -144,7 +171,7 @@ function startAnimation(sceneId, distance) {
   }
 
   // Create the road
-  createStraightRoad(20); // Create a road with 20 sections
+  createStraightRoad(5); // Create a road with 20 sections
 
   const objLoader = new OBJLoader();
 
@@ -186,8 +213,9 @@ function centerAndScaleObject(object, scaleFactor) {
   box.getCenter(center);
   object.position.sub(center); // Center the object
 
-  object.scale.set(scaleFactor, scaleFactor, scaleFactor);
+  object.scale.set(scaleFactor, scaleFactor, scaleFactor); // Scale down
 }
+
 
 // ===== Animation Loop =====
 function animate() {
