@@ -9,17 +9,19 @@
 <body>
   <!-- Menu -->
   <div id="menu">
-    <h1>Scene Settings</h1>
-    <label for="scene">Select Scene:</label>
+    <h1>Izberi sceno</h1>
+    <label for="scene">Izberi sceno:</label>
     <select id="scene">
-      <option value="1">Car passes the cyclist</option>
-      <option value="2">Car is passed by a motorcyclist</option>
+      <option value="1">Motorist prehiteva</option>
+      <option value="2">Prehitimo kolesarja</option>
+      <option value="3">Srecanje z motoristom</option>
+      <option value="4">Srecanje z kolesarjem</option>
     </select>
 
-    <label for="distance">Cyclist Distance (m):</label>
+    <label for="distance">razdalja do avta (m):</label>
     <input type="number" id="distance" value="10" min="1" max="100">
 
-    <button id="start">Start Animation</button>
+    <button id="start">ZAZENI</button>
   </div>
 
   <!-- Canvas for Three.js -->
