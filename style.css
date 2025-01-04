@@ -39,15 +39,15 @@ canvas {
 #menu select, #menu button {
   width: 100%;
   margin-bottom: 10px;
-  padding: 10px;
+  padding: 7px;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
 
-#menu input[type="number"], #menu select {
-  width: 100%;
+#menu input[type="number"] {
+  width: 92%;
   margin-bottom: 10px;
-  padding: 5px;
+  padding: 7px;
   border: 1px solid #ccc;
   border-radius: 5px;
 }
