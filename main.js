@@ -1,6 +1,17 @@
-import * as THREE from 'three';
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as THREE from './node_modules/three/build/three.module.js';
+import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
+import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
+
+// Movement speed for the camera
+const cameraSpeed = 1; // Adjust this value for faster/slower movement
+
+// Track key states to allow smooth movement
+const keys = {
+  w: false,
+  a: false,
+  s: false,
+  d: false,
+};
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
@@ -8,24 +19,19 @@ const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerH
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#bg'),
 });
+
+// Set up renderer
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-camera.position.z = 10;
+camera.position.set(10, 10, 20); // Set initial camera position
+camera.lookAt(0, 0, 0); // Make the camera look at the center of the scene
 
-// ===== Add Camera Controls =====
+// ===== Set Up OrbitControls =====
 const controls = new OrbitControls(camera, renderer.domElement);
-
-// Enable damping (smooth movement)
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-
-// Set min and max zoom distances
-controls.minDistance = 5; // Minimum zoom distance
-controls.maxDistance = 50; // Maximum zoom distance
-
-// Allow vertical and horizontal rotation
-controls.enablePan = false; // Disable panning
-controls.enableRotate = true; // Enable rotation
+controls.minDistance = 5;
+controls.maxDistance = 50;
 
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
@@ -40,39 +46,58 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-// ===== Load and Display Models =====
-const objLoader = new OBJLoader();
-let currentModel = null; // Keep track of the current model
-
-function loadModel(modelPath, position) {
-  if (currentModel) {
-    scene.remove(currentModel); // Remove the existing model
+// Add event listeners for key presses
+document.addEventListener('keydown', (event) => {
+  switch (event.key.toLowerCase()) {
+    case 'w':
+      keys.w = true;
+      break;
+    case 'a':
+      keys.a = true;
+      break;
+    case 's':
+      keys.s = true;
+      break;
+    case 'd':
+      keys.d = true;
+      break;
   }
+});
 
-  objLoader.load(
-    modelPath,
-    (object) => {
-      currentModel = object;
+document.addEventListener('keyup', (event) => {
+  switch (event.key.toLowerCase()) {
+    case 'w':
+      keys.w = false;
+      break;
+    case 'a':
+      keys.a = false;
+      break;
+    case 's':
+      keys.s = false;
+      break;
+    case 'd':
+      keys.d = false;
+      break;
+  }
+});
 
-      // Center and scale the model
-      const box = new THREE.Box3().setFromObject(object);
-      const center = new THREE.Vector3();
-      box.getCenter(center);
-      object.position.sub(center); // Center the model
-      object.scale.set(0.5, 0.5, 0.5); // Scale the model
-      object.position.set(position.x, position.y, position.z); // Set position
+function updateCameraMovement() {
+  const forward = new THREE.Vector3();
+  const right = new THREE.Vector3();
+  camera.getWorldDirection(forward); // Get the forward vector
+  forward.y = 0; // Lock vertical movement
+  forward.normalize();
 
-      scene.add(object); // Add the model to the scene
-      console.log(`${modelPath} loaded successfully.`);
-    },
-    undefined,
-    (error) => {
-      console.error(`Error loading ${modelPath}:`, error);
-    }
-  );
+  right.crossVectors(camera.up, forward).normalize(); // Calculate the right vector
+
+  // Update camera position based on key states
+  if (keys.w) camera.position.add(forward.clone().multiplyScalar(cameraSpeed)); // Move forward
+  if (keys.s) camera.position.add(forward.clone().multiplyScalar(-cameraSpeed)); // Move backward
+  if (keys.a) camera.position.add(right.clone().multiplyScalar(-cameraSpeed)); // Move left
+  if (keys.d) camera.position.add(right.clone().multiplyScalar(cameraSpeed)); // Move right
 }
 
-// ===== Handle Start Button =====
+// Handle the "Start Animation" button
 startButton.addEventListener('click', () => {
   const selectedScene = sceneSelect.value;
   const distance = parseFloat(distanceInput.value);
@@ -82,13 +107,87 @@ startButton.addEventListener('click', () => {
   // Hide the menu
   menu.classList.add('hidden');
 
-  // Load the appropriate model based on the selected scene
-  if (selectedScene === '1') {
-    loadModel('./models/avto.obj', { x: distance / 10, y: 0, z: 0 }); // Load car
-  } else if (selectedScene === '2') {
-    loadModel('./models/motorist.obj', { x: -distance / 10, y: 0, z: 0 }); // Load motorcyclist
-  }
+  // Start animation logic based on scene and distance
+  startAnimation(selectedScene, distance);
 });
+
+// ===== Load and Place the Road Sections =====
+function createStraightRoad(roadLength) {
+  const objLoader = new OBJLoader();
+  const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 }); // Gray color for road
+
+  for (let i = 0; i < roadLength; i++) {
+    objLoader.load('./models/Streight.obj', (object) => {
+      centerAndScaleObject(object, 1); // Center and scale each road section
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.material = roadMaterial; // Apply the road material
+        }
+      });
+
+      // Rotate and position the road section
+      object.rotation.x = -Math.PI / 2; // Ensure it's flat
+      object.position.set(0, 0, i * 10); // Position along the Z-axis
+      scene.add(object);
+    });
+  }
+}
+
+// ===== Handle Animation Logic =====
+function startAnimation(sceneId, distance) {
+  // Clear previous models
+  for (let i = scene.children.length - 1; i >= 0; i--) {
+    const obj = scene.children[i];
+    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper)) {
+      scene.remove(obj);
+    }
+  }
+
+  // Create the road
+  createStraightRoad(20); // Create a road with 20 sections
+
+  const objLoader = new OBJLoader();
+
+  const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+  if (sceneId === '1') {
+    // Load motorist.obj for Scene 1
+    objLoader.load('./models/motorist.obj', (object) => {
+      centerAndScaleObject(object, 0.1); // Center and scale the model
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.material = whiteMaterial; // Apply the white material
+        }
+      });
+      object.position.set(0, 1, 10); // Place motorist on the road
+      scene.add(object);
+    });
+  } else if (sceneId === '2') {
+    // Load avto.obj for Scene 2
+    objLoader.load('./models/avto.obj', (object) => {
+      centerAndScaleObject(object, 0.1); // Center and scale the model
+      object.traverse((child) => {
+        if (child.isMesh) {
+          child.material = whiteMaterial; // Apply the white material
+        }
+      });
+      object.position.set(0, 1, -10); // Place car on the road
+      scene.add(object);
+    });
+  } else {
+    console.log(`Unknown scene ID: ${sceneId}`);
+  }
+}
+
+// ===== Utility Function to Center and Scale Objects =====
+function centerAndScaleObject(object, scaleFactor) {
+  const box = new THREE.Box3().setFromObject(object);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+  object.position.sub(center); // Center the object
+
+  object.scale.set(scaleFactor, scaleFactor, scaleFactor);
+}
 
 // ===== Animation Loop =====
 function animate() {
@@ -96,6 +195,9 @@ function animate() {
 
   // Update OrbitControls
   controls.update();
+
+  // Update camera movement
+  updateCameraMovement();
 
   // Render the scene
   renderer.render(scene, camera);
