@@ -194,7 +194,7 @@ function startAnimation(sceneId, distance) {
   }
 
   // Create the road
-  createStraightRoad(5); // Create a road with 10 sections
+  createStraightRoad(6); // Create a road with 10 sections
 
   const objLoader = new OBJLoader();
   const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -282,4 +282,50 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+});
+
+function scene1(distance) {
+  startAnimation(1, distance);
+  
+  console.log("Scena 1: Motorist prehiteva.");
+}
+
+function scene2(distance) {
+  startAnimation(2, distance);
+  
+  console.log("Scena 2: Prehitimo kolesarja.");
+}
+
+function scene3(distance) {
+  startAnimation(3, distance);
+  
+  console.log("Scena 3: Srecanje z motoristom.");
+}
+
+function scene4(distance) {
+  startAnimation(4, distance);
+  
+  console.log("Scena 4: Srecanje s kolesarjem.");
+}
+
+document.getElementById("start").addEventListener("click", () => {
+  const sceneId = document.getElementById("scene").value;
+  const distance = parseFloat(document.getElementById("distance").value);
+
+  switch (sceneId) {
+    case "1":
+      scene1(distance);
+      break;
+    case "2":
+      scene2(distance);
+      break;
+    case "3":
+      scene3(distance);
+      break;
+    case "4":
+      scene4(distance);
+      break;
+    default:
+      console.log("Invalid scene selected.");
+  }
 });
