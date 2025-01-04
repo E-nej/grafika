@@ -132,6 +132,7 @@ function updateCameraMovement() {
 
 // Objects and animation flag
 let motorist; // Reference for the motorist object
+let cyclist;
 let car; // Reference for the car object
 let isAnimating = false; // Flag to start/stop the animation
 
@@ -260,8 +261,15 @@ function animate() {
   }
 
   // Move motorist when right mouse button is held
-  if (isRightMouseDown && motorist) {
-    motorist.position.x += 0.02; // Gradually move motorist away from the center
+  let roadWidth = 1.5;
+  if (isRightMouseDown && motorist || cyclist) {
+    if (motorist.position.x < roadWidth) {
+      motorist.position.x += 0.02; // Gradually move motorist away from the center
+      //cyclist.position.x += 0.02; --> trenutno zakomentirano, ker brez kolesarja ne dela ok
+    } else {
+      motorist.position.x = -roadWidth;
+      //cyclist.position.x = -roadWidth;
+    }  
   }
 
   // Render the scene
