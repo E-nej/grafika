@@ -13,6 +13,13 @@ const keys = {
   d: false,
 };
 
+const sceneOptions = {
+  MOTOR_PREHITI: 1,
+  PREHITIMO_KOLESARJA: 2,
+  SRECANJE_Z_MOTORISTOM: 3,
+  SRECANJE_S_KOLESARJEM: 4,
+}
+
 // Track right mouse button state
 let isRightMouseDown = false;
 
@@ -292,28 +299,10 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 });
 
-function scene1(distance) {
-  activeScene = 1;
-  startAnimation(1, distance);
-  console.log("Scena 1: Motorist prehiteva.");
-}
-
-function scene2(distance) {
-  activeScene = 2;
-  startAnimation(2, distance);
-  console.log("Scena 2: Prehitimo kolesarja.");
-}
-
-function scene3(distance) {
-  activeScene = 3;
-  startAnimation(3, distance);
-  console.log("Scena 3: Srecanje z motoristom.");
-}
-
-function scene4(distance) {
-  activeScene = 4;
-  startAnimation(4, distance);
-  console.log("Scena 4: Srecanje s kolesarjem.");
+function sceneSelector(distance, sceneId) {
+  activeScene = sceneId;
+  startAnimation(sceneId, distance);
+  console.log("Scene " + sceneId + " started.");
 }
 
 document.getElementById("start").addEventListener("click", () => {
@@ -322,16 +311,16 @@ document.getElementById("start").addEventListener("click", () => {
 
   switch (sceneId) {
     case "1":
-      scene1(distance);
+      sceneSelector(distance, sceneOptions.MOTOR_PREHITI);
       break;
     case "2":
-      scene2(distance);
+      sceneSelector(distance, sceneOptions.PREHITIMO_KOLESARJA);
       break;
     case "3":
-      scene3(distance);
+      sceneSelector(distance, sceneOptions.SRECANJE_Z_MOTORISTOM);
       break;
     case "4":
-      scene4(distance);
+      sceneSelector(distance, sceneOptions.SRECANJE_S_KOLESARJEM);
       break;
     default:
       console.log("Invalid scene selected.");
