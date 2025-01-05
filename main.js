@@ -131,9 +131,9 @@ function updateCameraMovement() {
 }
 
 // Objects and animation flag
-let motorist; // Reference for the motorist object
+let motorist;
 let cyclist;
-let car; // Reference for the car object
+let car; 
 let isAnimating = false; // Flag to start/stop the animation
 
 // Handle the "Start Animation" button
@@ -250,14 +250,22 @@ function animate() {
   // Update camera movement
   updateCameraMovement();
 
-  // Move objects if animation is enabled
+  let activeScene = 1;
   if (isAnimating) {
-    if (motorist) {
-      motorist.position.z -= 0.05; // Move motorist forward
-    }
-    if (car) {
-      car.position.z -= 0.05; // Move car forward
-    }
+    if (activeScene === 1) {
+      if (motorist) {
+        motorist.position.z -= 0.09;
+      }
+      if (car) {
+        car.position.z -= 0.05;
+      }
+    } else if (activeScene === 2) {
+      
+    } else if (activeScene === 3) {
+      
+    } else {
+      
+    }    
   }
 
   // Move motorist when right mouse button is held
@@ -285,31 +293,31 @@ window.addEventListener('resize', () => {
 });
 
 function scene1(distance) {
+  activeScene = 1;
   startAnimation(1, distance);
-  
   console.log("Scena 1: Motorist prehiteva.");
 }
 
 function scene2(distance) {
+  activeScene = 2;
   startAnimation(2, distance);
-  
   console.log("Scena 2: Prehitimo kolesarja.");
 }
 
 function scene3(distance) {
+  activeScene = 3;
   startAnimation(3, distance);
-  
   console.log("Scena 3: Srecanje z motoristom.");
 }
 
 function scene4(distance) {
+  activeScene = 4;
   startAnimation(4, distance);
-  
   console.log("Scena 4: Srecanje s kolesarjem.");
 }
 
 document.getElementById("start").addEventListener("click", () => {
-  const sceneId = document.getElementById("scene").value;
+  const sceneId = parseInt(document.getElementById("scene").value, 10);
   const distance = parseFloat(document.getElementById("distance").value);
 
   switch (sceneId) {
