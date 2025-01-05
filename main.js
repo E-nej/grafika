@@ -315,7 +315,7 @@ function animate() {
     case 4:
       // Scene 4 logic here
       if (cyclist) {
-        motorist.position.z -= 0.09;
+        cyclist.position.z -= 0.09;
       }
       if (car) {
         car.position.z -= 0.05;
