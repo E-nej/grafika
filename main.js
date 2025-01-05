@@ -142,6 +142,7 @@ let motorist;
 let cyclist;
 let car; 
 let isAnimating = false; // Flag to start/stop the animation
+var activeScene = 0; // Track the active scene
 
 // Handle the "Start Animation" button
 startButton.addEventListener('click', () => {
@@ -235,7 +236,7 @@ function startAnimation(sceneId, distance) {
     object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
     scene.add(object);
 
-    motorist = object; // Save reference to motorist
+    cyclist = object; // Save reference to motorist
   });
   } else {
     // Load motorist.obj
@@ -252,16 +253,7 @@ function startAnimation(sceneId, distance) {
 
     motorist = object; // Save reference to motorist
   });
-
   }
-
-
-
-
-  
-  
-
-
 }
 
 // ===== Utility Function to Center and Scale Objects =====
@@ -284,39 +276,75 @@ function animate() {
   // Update camera movement
   updateCameraMovement();
 
-  let activeScene = 1;
-  if (isAnimating) {
-    if (activeScene === 1) {
+  
+
+  // Early return if not animating
+  if (!isAnimating) {
+    renderer.render(scene, camera);
+    return;
+  }
+
+  // Handle animations based on the active scene
+  switch (activeScene) {
+    case 1:
       if (motorist) {
         motorist.position.z -= 0.09;
       }
       if (car) {
         car.position.z -= 0.05;
       }
-    } else if (activeScene === 2) {
-      
-    } else if (activeScene === 3) {
-      
-    } else {
-      
-    }    
+      break;
+    case 2:
+      // Scene 2 logic here
+      if (cyclist){
+        cyclist.position.z -= 0.09;
+      }
+      if (car) {
+        car.position.z -= 0.05;
+      }
+      break;
+    case 3:
+      // Scene 3 logic here
+      if (motorist) {
+        motorist.position.z -= 0.09;
+      }
+      if (car) {
+        car.position.z -= 0.05;
+      }
+      break;
+    case 4:
+      // Scene 4 logic here
+      if (cyclist) {
+        motorist.position.z -= 0.09;
+      }
+      if (car) {
+        car.position.z -= 0.05;
+      }
+      break;
+
+    default:
+      // Logic for other scenes
+      console.log('Invalid scene selected.');
+
+      break;
   }
 
   // Move motorist when right mouse button is held
   let roadWidth = 1.5;
-  if (isRightMouseDown && motorist || cyclist) {
+  if (isRightMouseDown && (motorist || cyclist)) {
     if (motorist.position.x < roadWidth) {
       motorist.position.x += 0.02; // Gradually move motorist away from the center
-      //cyclist.position.x += 0.02; --> trenutno zakomentirano, ker brez kolesarja ne dela ok
+      //cyclist.position.x += 0.02; --> currently commented, as without cyclist it's not working correctly
     } else {
       motorist.position.x = -roadWidth;
       //cyclist.position.x = -roadWidth;
-    }  
+    }
   }
 
   // Render the scene
   renderer.render(scene, camera);
 }
+
 animate();
 
 // ===== Handle Window Resize =====
@@ -328,7 +356,7 @@ window.addEventListener('resize', () => {
 
 function sceneSelector(distance, sceneId) {
   activeScene = sceneId;
-  startAnimation(sceneId, distance);
+  //startAnimation(sceneId, distance);
   console.log("Scene " + sceneId + " started.");
 }
 
@@ -337,19 +365,19 @@ document.getElementById("start").addEventListener("click", () => {
   const distance = parseFloat(document.getElementById("distance").value);
 
   switch (sceneId) {
-    case "1":
+    case 1:
       sceneSelector(distance, sceneOptions.MOTOR_PREHITI);
       break;
-    case "2":
+    case 2:
       sceneSelector(distance, sceneOptions.PREHITIMO_KOLESARJA);
       break;
-    case "3":
+    case 3:
       sceneSelector(distance, sceneOptions.SRECANJE_Z_MOTORISTOM);
       break;
-    case "4":
+    case 4:
       sceneSelector(distance, sceneOptions.SRECANJE_S_KOLESARJEM);
       break;
     default:
-      console.log("Invalid scene selected.");
+      console.log("Invalid scene selected." + sceneId);
   }
 });
