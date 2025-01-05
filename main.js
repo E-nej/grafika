@@ -205,21 +205,7 @@ function startAnimation(sceneId, distance) {
 
   const objLoader = new OBJLoader();
   const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-  // Load motorist.obj
-  objLoader.load('./models/motorist.obj', (object) => {
-    centerAndScaleObject(object, 0.15); // Scale up the motorist
-    object.traverse((child) => {
-      if (child.isMesh) {
-        child.material = whiteMaterial; // Apply white material
-      }
-    });
-    object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
-    scene.add(object);
-
-    motorist = object; // Save reference to motorist
-  });
+  const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
@@ -235,6 +221,47 @@ function startAnimation(sceneId, distance) {
 
     car = object; // Save reference to car
   });
+
+  if (sceneId % 2 === 0) {
+    // Load bikered.obj
+    objLoader.load('./models/bikered.obj', (object) => {
+    centerAndScaleObject(object, 0.15); // Scale up the motorist
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = redMaterial; // Apply white material
+      }
+    });
+    object.rotation.y = Math.PI / 2; // Rotate to align with road
+    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
+    scene.add(object);
+
+    motorist = object; // Save reference to motorist
+  });
+  } else {
+    // Load motorist.obj
+    objLoader.load('./models/motorist.obj', (object) => {
+    centerAndScaleObject(object, 0.15); // Scale up the motorist
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = redMaterial; // Apply white material
+      }
+    });
+    object.rotation.y = Math.PI / 2; // Rotate to align with road
+    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
+    scene.add(object);
+
+    motorist = object; // Save reference to motorist
+  });
+
+  }
+
+
+
+
+  
+  
+
+
 }
 
 // ===== Utility Function to Center and Scale Objects =====
