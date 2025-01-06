@@ -450,6 +450,7 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 });
 
+// ===== Handle Start Button Click =====
 document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
   const distance = parseFloat(document.getElementById("distance").value);
