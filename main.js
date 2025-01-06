@@ -321,7 +321,7 @@ function animate() {
         const motorbikeDeceleration = 0.006;
         const motoristMaxSpeed = 0.09; 
         const carMaxSpeed = 0.05; 
-        const acceleration = 0.001;
+        const acceleration = 0.0005;
     
         // Variables to store current speeds and initialization
         if (motorist.currentSpeed === undefined) motorist.currentSpeed = 0; 
@@ -373,7 +373,7 @@ function animate() {
         const cyclistDeceleration = 0.0035;
         const cyclistMaxSpeed = 0.05; 
         const carMaxSpeed = 0.08; 
-        const acceleration = 0.001;
+        const acceleration = 0.0005;
     
         // Variables to store current speeds and initialization
         if (cyclist.currentSpeed === undefined) cyclist.currentSpeed = 0; 
