@@ -239,7 +239,7 @@ function startAnimation(sceneId, distance) {
   // Clear previous models
   for (let i = scene.children.length - 1; i >= 0; i--) {
     const obj = scene.children[i];
-    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper)) {
+    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper || obj === sky)) { // Skip the sky object
       scene.remove(obj);
     }
   }
