@@ -360,6 +360,7 @@ function startAnimation(sceneId, distance) {
   createStraightRoad(9);
 
   const objLoader = new OBJLoader();
+  const carTexture = new THREE.TextureLoader().load('./textures/car-texture.jpg');
 
 
   // Load avto.obj
@@ -367,7 +368,10 @@ function startAnimation(sceneId, distance) {
     centerAndScaleObject(object, 0.3); // Scale and center the model
     object.traverse((child) => {
       if (child.isMesh) {
-        child.material = whiteMaterial; // Apply white material
+        //child.material = whiteMaterial; // Apply white material
+        child.material = new THREE.MeshStandardMaterial({
+          map: carTexture, // Use the loaded texture
+        });
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
