@@ -90,3 +90,12 @@ canvas {
   border-radius: 5px;
   user-select: none;
 }
+
+#camera-options {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+
+
