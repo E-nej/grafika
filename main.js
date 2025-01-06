@@ -1,6 +1,26 @@
 import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
+import mqtt from 'mqtt';
+
+const client = mqtt.connect("ws://192.168.0.106:9001");
+
+client.on("connect", () => {
+  client.subscribe("presence", (err) => {
+    if (!err) {
+      client.publish("presence", "Hello mqtt");
+    }
+  });
+});
+
+client.on("message", (topic, message) => {
+  // message is Buffer
+  console.log(message.toString());
+  client.end();
+});
+
+// MQTT client setup that is not over websockets on ip address 192.168.0.106
+//const client = mqtt.connect('mqtt://192.168.0.106:1883');
 
 const cameraSpeed = 0.2;
 const MAX_BOUNDARY_Z = 50; 
