@@ -443,6 +443,31 @@ function animate() {
     if (object.position.z < minZ) object.position.z = minZ;
   }
 
+  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
+    if (object.currentSpeed === undefined) object.currentSpeed = 0; // Initialize speed if undefined
+    if (object.takeOffCounter === undefined) object.takeOffCounter = 0; // Initialize counter if undefined
+  
+    if (!object.stopped) {
+      // Decelerate to the stopping point
+      if (object.position.z > stoppingPoint) {
+        object.position.z -= Math.max(0.02, (object.position.z - stoppingPoint) * deceleration);
+      } else {
+        object.position.z = stoppingPoint; // Snap to stopping point
+        object.stopped = true; // Mark as stopped
+      }
+    } else {
+      // Increment counter and start accelerating after stopping
+      object.takeOffCounter++;
+      if (object.takeOffCounter > 120) { // ~2 seconds delay
+        if (object.currentSpeed < maxSpeed) {
+          object.currentSpeed += acceleration; // Increment speed using specific acceleration
+        }
+        object.position.z -= object.currentSpeed; // Move forward based on current speed
+      }
+    }
+  }
+  
+
   // Utility function: Handle stop-and-go behavior
   function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
     if (object.currentSpeed === undefined) object.currentSpeed = 0;
@@ -504,8 +529,8 @@ function animate() {
 
     case 4: // Scene 4: Stop-and-go behavior for cyclist and car
       if (cyclist && car) {
-        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, acceleration);
-        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, acceleration);
+        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001); // Cyclist accelerates faster
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.1000); // Car accelerates slower
       } else {
         console.log('Cyclist or car not found.');
       }
