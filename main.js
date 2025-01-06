@@ -2,7 +2,7 @@ import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 import mqtt from 'mqtt';
-import { color } from 'three/tsl';
+import { Sky } from 'three/addons/objects/Sky.js';
 
 const client = mqtt.connect("ws://192.168.56.1:9001");
 
@@ -52,6 +52,18 @@ let isRightMouseDown = false;
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
+//scene.background = new THREE.Color(0x87CEEB);  // Sky blue color
+
+const sky = new Sky();
+sky.scale.setScalar(450000); // Adjust size of sky dome
+
+const phi = THREE.MathUtils.degToRad( 90 );
+const theta = THREE.MathUtils.degToRad( 180 );
+const sunPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi, theta );
+
+sky.material.uniforms.sunPosition.value = sunPosition;
+
+scene.add( sky );
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
@@ -72,11 +84,11 @@ controls.minDistance = 5;
 controls.maxDistance = 50;
 
 // ===== Add Helpers for Debugging =====
-const gridHelper = new THREE.GridHelper(100, 100);
-scene.add(gridHelper);
+//const gridHelper = new THREE.GridHelper(100, 100);
+//scene.add(gridHelper);
 
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+//const axesHelper = new THREE.AxesHelper(5);
+//scene.add(axesHelper);
 
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
