@@ -4,15 +4,7 @@ import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitC
 import mqtt from 'mqtt';
 import { Sky } from 'three/addons/objects/Sky.js';
 
-const client = mqtt.connect("ws://192.168.56.1:9001");
-
-client.on("connect", () => {
-  client.subscribe("presence", (err) => {
-    if (!err) {
-      client.publish("presence", "Hello mqtt");
-    }
-  });
-});
+const client = mqtt.connect("ws://192.168.0.106:9001");
 
 client.on("message", (topic, message) => {
   // message is Buffer
@@ -118,6 +110,57 @@ function addGrassPlane() {
 }
 
 grassPlane = addGrassPlane();
+
+// get positions for MQTT message
+function getPositions() {
+  const roundToTwoDecimals = (value) => parseFloat(value.toFixed(2));
+
+  const positions = {};
+
+  if (car) {
+    positions.car = {
+      x: roundToTwoDecimals(car.position.x),
+      y: roundToTwoDecimals(car.position.y),
+      z: roundToTwoDecimals(car.position.z),
+    };
+  }
+
+  if (cyclist) {
+    positions.cyclist = {
+      x: roundToTwoDecimals(cyclist.position.x),
+      y: roundToTwoDecimals(cyclist.position.y),
+      z: roundToTwoDecimals(cyclist.position.z),
+    };
+  }
+
+  if (motorist) {
+    positions.motorist = {
+      x: roundToTwoDecimals(motorist.position.x),
+      y: roundToTwoDecimals(motorist.position.y),
+      z: roundToTwoDecimals(motorist.position.z),
+    };
+  }
+
+  return positions;
+}
+// send positions to MQTT
+function sendPositions() {
+  const positions = getPositions();
+
+  if (Object.keys(positions).length > 0) {
+    const message = JSON.stringify(positions);
+
+    client.publish("scene/positions", message, (err) => {
+      if (err) {
+        console.error("Failed to send positions:", err);
+      } else {
+        console.log("Positions sent:", message);
+      }
+    });
+  }
+}
+
+setInterval(sendPositions, 2000); // Send positions every second
 
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
