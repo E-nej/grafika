@@ -2,7 +2,7 @@ import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 import mqtt from 'mqtt';
-import { color } from 'three/tsl';
+import { Sky } from 'three/addons/objects/Sky.js';
 
 const client = mqtt.connect("ws://192.168.56.1:9001");
 
@@ -52,6 +52,18 @@ let isRightMouseDown = false;
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
+//scene.background = new THREE.Color(0x87CEEB);  // Sky blue color
+
+const sky = new Sky();
+sky.scale.setScalar(450000); // Adjust size of sky dome
+
+const phi = THREE.MathUtils.degToRad( 90 );
+const theta = THREE.MathUtils.degToRad( 180 );
+const sunPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi, theta );
+
+sky.material.uniforms.sunPosition.value = sunPosition;
+
+scene.add( sky );
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
@@ -72,11 +84,31 @@ controls.minDistance = 5;
 controls.maxDistance = 50;
 
 // ===== Add Helpers for Debugging =====
-const gridHelper = new THREE.GridHelper(100, 100);
-scene.add(gridHelper);
+//const gridHelper = new THREE.GridHelper(100, 100);
+//scene.add(gridHelper);
 
-const axesHelper = new THREE.AxesHelper(5);
-scene.add(axesHelper);
+//const axesHelper = new THREE.AxesHelper(5);
+//scene.add(axesHelper);
+
+let grassPlane;
+
+function addGrassPlane() {
+  const planeGeometry = new THREE.PlaneGeometry(100, 100);
+  const grassMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
+    side: THREE.DoubleSide,
+  });
+
+  grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Assign to global variable
+
+  grassPlane.rotation.x = -Math.PI / 2;
+  grassPlane.position.set(0, 0, 0);
+
+  scene.add(grassPlane);
+  return grassPlane;
+}
+
+grassPlane = addGrassPlane();
 
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
@@ -90,6 +122,32 @@ document.addEventListener('keydown', (event) => {
     menu.classList.toggle('hidden');
   }
 });
+
+// Function to display help information
+function showHelp() {
+  alert(`
+Key Bindings:
+- W: Move camera forward
+- S: Move camera backward
+- A: Move camera left
+- D: Move camera right
+- Space: Start/Stop animation
+- M: Toggle the menu
+- R: Reload the page
+- P: Toggle perspective view (third-person/follow car)
+- Right Mouse Button: Move motorist or cyclist laterally
+- H: Display this help information
+`);
+}
+
+// Add event listener for 'H' key
+document.addEventListener('keydown', (event) => {
+  if (event.key.toLowerCase() === 'h') {
+    showHelp();
+  }
+});
+
+
 
 // Add event listeners for key presses
 document.addEventListener('keydown', (event) => {
@@ -212,7 +270,7 @@ function createStraightRoad(roadLength) {
 
       // Correct rotation to ensure road is flat
       object.rotation.y = -Math.PI / 2; // Lay flat on the ground
-      object.position.set(0, 0, i * 5); // Position along the Z-axis
+      object.position.set(0, 0.01, i * 5); // Position along the Z-axis
 
       // Add the road section to the scene
       scene.add(object);
@@ -227,8 +285,9 @@ function startAnimation(sceneId, distance) {
   // Clear previous models
   for (let i = scene.children.length - 1; i >= 0; i--) {
     const obj = scene.children[i];
-    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper)) {
+    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper || obj === sky || obj === grassPlane)) { 
       scene.remove(obj);
+      console.log('Removed object:', obj);
     }
   }
 
