@@ -2,6 +2,7 @@ import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 import mqtt from 'mqtt';
+import { color } from 'three/tsl';
 
 const client = mqtt.connect("ws://192.168.56.1:9001");
 
@@ -41,6 +42,11 @@ const acceleration = 0.0005;
 const cyclistDeceleration = 0.0035;
 const cyclistMaxSpeed = 0.05; 
 
+let perspectiveFlag = false; // Flag to enable/disable perspective view
+
+// materials
+const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 // Track right mouse button state
 let isRightMouseDown = false;
 
@@ -107,6 +113,10 @@ document.addEventListener('keydown', (event) => {
     case 'r': // R key reloads the page
       console.log('Reloading the page...');
       location.reload(); // Reload the page
+      break;
+    case 'p': // P key toggles perspective view
+      perspectiveFlag = !perspectiveFlag; // Toggle perspective view
+      console.log(`Perspective view is now ${perspectiveFlag ? 'enabled' : 'disabled'}`);
       break;
   }
 });
@@ -226,8 +236,7 @@ function startAnimation(sceneId, distance) {
   createStraightRoad(9);
 
   const objLoader = new OBJLoader();
-  const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-  const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
@@ -242,9 +251,7 @@ function startAnimation(sceneId, distance) {
     scene.add(object);
 
     car = object; // Save reference to car
-    car.add(camera);
-    camera.position.set(0, 5, -5); // Adjust the camera's offset behind and above the car
-    camera.lookAt(car.position); // Make the camera look at the car's center
+  
   });
 
   if (sceneId % 2 === 0) {
@@ -297,7 +304,7 @@ function animate() {
   // Update OrbitControls
   controls.update();
 
-  // Update camera movement
+  // Update camera movement (if necessary)
   updateCameraMovement();
 
   // Early return if not animating
@@ -392,6 +399,19 @@ function animate() {
   }
   if (isRightMouseDown && cyclist) {
     cyclist.position.x = (cyclist.position.x + 0.02) % roadWidth;
+  }
+
+  // Camera behavior: anchor to the car and make it look at the car
+  if (car) {
+    // Adjust camera position relative to the car
+    if(perspectiveFlag) {
+      const offset = new THREE.Vector3(0, 5, 5); // Adjust this vector to set your preferred distance
+      camera.position.copy(car.position).add(offset); // Set camera position at fixed offset from the car
+
+      //Make the camera look at the car
+      camera.lookAt(car.position);
+    }
+    
   }
 
   // Render the scene
