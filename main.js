@@ -65,6 +65,15 @@ sky.material.uniforms.sunPosition.value = sunPosition;
 
 scene.add( sky );
 
+// Add ambient light for overall illumination
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light
+scene.add(ambientLight);
+
+// Add a directional light to simulate the sun or another strong light source
+const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+directionalLight.position.set(10, 20, 10); // Position the light above and to the side
+scene.add(directionalLight);
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#bg'),
@@ -255,7 +264,13 @@ startButton.addEventListener('click', () => {
 // ===== Load and Place the Road Sections =====
 function createStraightRoad(roadLength) {
   const objLoader = new OBJLoader();
-  const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 }); // Gray material for the road
+  //const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 }); // Gray material for the road
+  const roadTexture = new THREE.TextureLoader().load('./textures/road-texture.jpg');
+  roadTexture.wrapS = THREE.RepeatWrapping;
+  roadTexture.wrapT = THREE.RepeatWrapping;
+  roadTexture.repeat.set(10, 10);  // Adjust the number of repetitions
+  const roadMaterial = new THREE.MeshBasicMaterial({ map: roadTexture });
+
 
   for (let i = -roadLength; i <= roadLength; i++) {
     objLoader.load('./models/cesta.obj', (object) => {
