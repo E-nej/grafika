@@ -116,38 +116,29 @@ const startButton = document.getElementById('start');
 const sceneSelect = document.getElementById('scene');
 const distanceInput = document.getElementById('distance');
 
-// Toggle menu visibility with the "M" key
-document.addEventListener('keydown', (event) => {
-  if (event.key.toLowerCase() === 'm') {
-    menu.classList.toggle('hidden');
-  }
-});
+function toggleHelp() {
+  const helpBox = document.getElementById('help-box');
+  const helpText = document.getElementById('help-prompt');
+  
+  // Get current display state of the helpBox
+  const helpBoxDisplay = window.getComputedStyle(helpBox).display;
 
-// Function to display help information
-function showHelp() {
-  alert(`
-Key Bindings:
-- W: Move camera forward
-- S: Move camera backward
-- A: Move camera left
-- D: Move camera right
-- Space: Start/Stop animation
-- M: Toggle the menu
-- R: Reload the page
-- P: Toggle perspective view (third-person/follow car)
-- Right Mouse Button: Move motorist or cyclist laterally
-- H: Display this help information
-`);
+  // Toggle visibility
+  if (helpBoxDisplay === 'block') {
+    helpBox.style.display = 'none'; // Hide the help box if it's visible
+    helpText.style.display = 'block'; // Show the help text
+  } else {
+    helpBox.style.display = 'block'; // Show the help box if it's hidden
+    helpText.style.display = 'none'; // Hide the help text
+  }
 }
 
 // Add event listener for 'H' key
 document.addEventListener('keydown', (event) => {
   if (event.key.toLowerCase() === 'h') {
-    showHelp();
+    toggleHelp();
   }
 });
-
-
 
 // Add event listeners for key presses
 document.addEventListener('keydown', (event) => {
