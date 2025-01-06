@@ -64,6 +64,12 @@ scene.add(ambientLight);
 // Add a directional light to simulate the sun or another strong light source
 const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
 directionalLight.position.set(10, 20, 10); // Position the light above and to the side
+directionalLight.castShadow = true; // Enable shadows for this light
+directionalLight.shadow.mapSize.width = 2048; // Shadow quality (higher is better, but slower)
+directionalLight.shadow.mapSize.height = 2048;
+directionalLight.shadow.camera.near = 0.5;
+directionalLight.shadow.camera.far = 50;
+
 scene.add(directionalLight);
 
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -74,6 +80,11 @@ const renderer = new THREE.WebGLRenderer({
 // Set up renderer
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
+
+// Add this to enable shadows
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Optional: Use soft shadows
+
 camera.position.set(10, 10, 10); // Set initial camera position
 //camera.lookAt(0, 0, 0); // Make the camera look at the center of the scene
 
@@ -105,6 +116,8 @@ function addGrassPlane() {
   });
 
   grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Assign to global variable
+
+  grassPlane.receiveShadow = true; // Grass will display shadows cast by other objects
 
   grassPlane.rotation.x = -Math.PI / 2;
   grassPlane.position.set(0, 0, 0);
