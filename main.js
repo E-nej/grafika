@@ -450,30 +450,9 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 });
 
-function sceneSelector(distance, sceneId) {
-  activeScene = sceneId;
-  //startAnimation(sceneId, distance);
-  console.log("Scene " + sceneId + " started.");
-}
-
 document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
   const distance = parseFloat(document.getElementById("distance").value);
 
-  switch (sceneId) {
-    case 1:
-      sceneSelector(distance, sceneOptions.MOTOR_PREHITI);
-      break;
-    case 2:
-      sceneSelector(distance, sceneOptions.PREHITIMO_KOLESARJA);
-      break;
-    case 3:
-      sceneSelector(distance, sceneOptions.SRECANJE_Z_MOTORISTOM);
-      break;
-    case 4:
-      sceneSelector(distance, sceneOptions.SRECANJE_S_KOLESARJEM);
-      break;
-    default:
-      console.log("Invalid scene selected." + sceneId);
-  }
+  activeScene = sceneId;
 });
