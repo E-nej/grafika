@@ -443,29 +443,7 @@ function animate() {
     if (object.position.z < minZ) object.position.z = minZ;
   }
 
-  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
-    if (object.currentSpeed === undefined) object.currentSpeed = 0; // Initialize speed if undefined
-    if (object.takeOffCounter === undefined) object.takeOffCounter = 0; // Initialize counter if undefined
-  
-    if (!object.stopped) {
-      // Decelerate to the stopping point
-      if (object.position.z > stoppingPoint) {
-        object.position.z -= Math.max(0.02, (object.position.z - stoppingPoint) * deceleration);
-      } else {
-        object.position.z = stoppingPoint; // Snap to stopping point
-        object.stopped = true; // Mark as stopped
-      }
-    } else {
-      // Increment counter and start accelerating after stopping
-      object.takeOffCounter++;
-      if (object.takeOffCounter > 120) { // ~2 seconds delay
-        if (object.currentSpeed < maxSpeed) {
-          object.currentSpeed += acceleration; // Increment speed using specific acceleration
-        }
-        object.position.z -= object.currentSpeed; // Move forward based on current speed
-      }
-    }
-  }
+
   
 
   // Utility function: Handle stop-and-go behavior
@@ -520,8 +498,8 @@ function animate() {
 
     case 3: // Scene 3: Stop-and-go behavior for motorist and car
       if (motorist && car) {
-        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, acceleration);
-        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, acceleration);
+        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005); // Motorist accelerates slower
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.010); // Car accelerates slower
       } else {
         console.log('Motorist or car not found.');
       }
