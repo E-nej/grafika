@@ -1,9 +1,30 @@
 import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
+import mqtt from 'mqtt';
 
-// Movement speed for the camera
-const cameraSpeed = 1; // Adjust this value for faster/slower movement
+const client = mqtt.connect("ws://192.168.56.1:9001");
+
+client.on("connect", () => {
+  client.subscribe("presence", (err) => {
+    if (!err) {
+      client.publish("presence", "Hello mqtt");
+    }
+  });
+});
+
+client.on("message", (topic, message) => {
+  // message is Buffer
+  console.log(message.toString());
+  client.end();
+});
+
+// MQTT client setup that is not over websockets on ip address 192.168.0.106
+//const client = mqtt.connect('mqtt://192.168.0.106:1883');
+
+const cameraSpeed = 0.2;
+const MAX_BOUNDARY_Z = 50; 
+const MIN_BOUNDARY_Z = -50; 
 
 // Track key states to allow smooth movement
 const keys = {
@@ -13,8 +34,20 @@ const keys = {
   d: false,
 };
 
+// Constants for animation
+const stoppingPoint = 0; 
+const carDeceleration = 0.005;
+const motorbikeDeceleration = 0.006;
+const motoristMaxSpeed = 0.09; 
+const carMaxSpeed = 0.05; 
+const acceleration = 0.0005;
+const cyclistDeceleration = 0.0035;
+const cyclistMaxSpeed = 0.05; 
+
 // Track right mouse button state
 let isRightMouseDown = false;
+
+
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
@@ -26,7 +59,7 @@ const renderer = new THREE.WebGLRenderer({
 // Set up renderer
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-camera.position.set(10, 10, 20); // Set initial camera position
+camera.position.set(10, 10, 10); // Set initial camera position
 camera.lookAt(0, 0, 0); // Make the camera look at the center of the scene
 
 // ===== Set Up OrbitControls =====
@@ -79,6 +112,14 @@ document.addEventListener('keydown', (event) => {
       console.log('Reloading the page...');
       location.reload(); // Reload the page
       break;
+    case ' ': // Space key toggles animation
+      isAnimating = !isAnimating; // Toggle animation state
+      console.log(`Animation is now ${isAnimating ? 'running' : 'paused'}`);
+      break;
+    case 'r': // R key reloads the page
+      console.log('Reloading the page...');
+      location.reload(); // Reload the page
+      break;
   }
 });
 
@@ -114,6 +155,21 @@ document.addEventListener('mouseup', (event) => {
   }
 });
 
+// Add mouse event listeners
+document.addEventListener('mousedown', (event) => {
+  if (event.button === 2) { // Right mouse button
+    isRightMouseDown = true;
+    console.log('Right mouse button pressed');
+  }
+});
+
+document.addEventListener('mouseup', (event) => {
+  if (event.button === 2) { // Right mouse button
+    isRightMouseDown = false;
+    console.log('Right mouse button released');
+  }
+});
+
 function updateCameraMovement() {
   const forward = new THREE.Vector3();
   const right = new THREE.Vector3();
@@ -126,14 +182,16 @@ function updateCameraMovement() {
   // Update camera position based on key states
   if (keys.w) camera.position.add(forward.clone().multiplyScalar(cameraSpeed)); // Move forward
   if (keys.s) camera.position.add(forward.clone().multiplyScalar(-cameraSpeed)); // Move backward
-  if (keys.a) camera.position.add(right.clone().multiplyScalar(-cameraSpeed)); // Move left
-  if (keys.d) camera.position.add(right.clone().multiplyScalar(cameraSpeed)); // Move right
+  if (keys.a) camera.position.add(right.clone().multiplyScalar(cameraSpeed)); // Move left
+  if (keys.d) camera.position.add(right.clone().multiplyScalar(-cameraSpeed)); // Move right
 }
 
 // Objects and animation flag
-let motorist; // Reference for the motorist object
-let car; // Reference for the car object
+let motorist;
+let cyclist;
+let car; 
 let isAnimating = false; // Flag to start/stop the animation
+var activeScene = 0; // Track the active scene
 
 // Handle the "Start Animation" button
 startButton.addEventListener('click', () => {
@@ -193,25 +251,11 @@ function startAnimation(sceneId, distance) {
   }
 
   // Create the road
-  createStraightRoad(5); // Create a road with 10 sections
+  createStraightRoad(9);
 
   const objLoader = new OBJLoader();
   const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-  // Load motorist.obj
-  objLoader.load('./models/motorist.obj', (object) => {
-    centerAndScaleObject(object, 0.15); // Scale up the motorist
-    object.traverse((child) => {
-      if (child.isMesh) {
-        child.material = whiteMaterial; // Apply white material
-      }
-    });
-    object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
-    scene.add(object);
-
-    motorist = object; // Save reference to motorist
-  });
+  const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
@@ -222,11 +266,43 @@ function startAnimation(sceneId, distance) {
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, -10); // Position the car slightly above the road
+    object.position.set(0, 0.2, 35); // Position the car slightly above the road
     scene.add(object);
 
     car = object; // Save reference to car
   });
+
+  if (sceneId % 2 === 0) {
+    // Load bikered.obj
+    objLoader.load('./models/bikered.obj', (object) => {
+    centerAndScaleObject(object, 0.15); // Scale up the cyclist
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = redMaterial; 
+      }
+    });
+    object.rotation.y = Math.PI / 1000; // Rotate to align with road
+    object.position.set(0.8, 0.2, 20); 
+    scene.add(object);
+
+    cyclist = object; // Save reference to cyclist
+  });
+  } else {
+    // Load motorist.obj
+    objLoader.load('./models/motorist.obj', (object) => {
+    centerAndScaleObject(object, 0.15); // Scale up the motorist
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = redMaterial; 
+      }
+    });
+    object.rotation.y = Math.PI / 2; // Rotate to align with road
+    object.position.set(0.8, 0.2, 50); // Position the motorist slightly above the road
+    scene.add(object);
+
+    motorist = object; // Save reference to motorist
+  });
+  }
 }
 
 // ===== Utility Function to Center and Scale Objects =====
@@ -249,13 +325,156 @@ function animate() {
   // Update camera movement
   updateCameraMovement();
 
-  // Move objects if animation is enabled
-  if (isAnimating) {
-    if (motorist) {
-      motorist.position.z -= 0.05; // Move motorist forward
-    }
-    if (car) {
-      car.position.z -= 0.05; // Move car forward
+  // Early return if not animating
+  if (!isAnimating) {
+    renderer.render(scene, camera);
+    return;
+  }
+
+  function gridBoundary(object, minZ, maxZ) {
+    if (object.position.z > maxZ) object.position.z = maxZ;
+    if (object.position.z < minZ) object.position.z = minZ;
+  }
+
+  let stopTime = null;
+
+  // Handle animations based on the active scene
+  switch (activeScene) {
+    case 1:
+      if (!motorist || !car) {
+        console.log('Motorist or car not found.');
+        break;
+      }
+      motorist.position.z -= 0.09;
+      gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+
+      car.position.z -= 0.05;
+      gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+      break;
+
+    case 2:
+      if (!cyclist || !car) {
+        console.log('Motorist or car not found.');
+        break;
+      }
+      cyclist.position.z -= 0.05;
+      gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+
+      car.position.z -= 0.08;
+      gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+      break;
+
+    case 3:
+      if (!motorist || !car) {
+        console.log('Motorist or car not found.');
+        break;
+      }
+
+      // Variables to store current speeds and initialization
+      if (motorist.currentSpeed === undefined) motorist.currentSpeed = 0; 
+      if (car.currentSpeed === undefined) car.currentSpeed = 0; 
+      if (motorist.takeOffCounter === undefined) motorist.takeOffCounter = 0; // Frame counter
+  
+      // Slow down and stop at the stopping point
+      if (!motorist.stopped && !car.stopped) {
+        if (motorist.position.z > stoppingPoint) {
+          motorist.position.z -= Math.max(0.02, (motorist.position.z - stoppingPoint) * motorbikeDeceleration);
+        }
+        if (car.position.z > stoppingPoint) {
+          car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
+        }
+  
+        // Check if both are at the stopping point
+        if (motorist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
+          motorist.position.z = stoppingPoint; 
+          car.position.z = stoppingPoint; 
+          motorist.stopped = true; 
+          car.stopped = true;
+        }
+      } else {
+        // Increment the frame counter after stopping
+        motorist.takeOffCounter++;
+  
+        // After 120 frames (~2 seconds at 60 FPS), gradually speed up
+        if (motorist.takeOffCounter > 120) {
+          if (motorist.currentSpeed < motoristMaxSpeed) {
+            motorist.currentSpeed += acceleration; 
+          }
+          if (car.currentSpeed < carMaxSpeed) {
+            car.currentSpeed += acceleration;
+          }
+  
+          motorist.position.z -= motorist.currentSpeed; 
+          car.position.z -= car.currentSpeed;
+          gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+          gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+        }
+      }
+      break;
+
+    case 4:
+      if (!cyclist || !car) {
+        console.log('Cyclist or car not found.');
+        break;
+      }
+
+      // Variables to store current speeds and initialization
+      if (cyclist.currentSpeed === undefined) cyclist.currentSpeed = 0; 
+      if (car.currentSpeed === undefined) car.currentSpeed = 0; 
+      if (cyclist.takeOffCounter === undefined) cyclist.takeOffCounter = 0; // Frame counter
+  
+      // Slow down and stop at the stopping point
+      if (!cyclist.stopped && !car.stopped) {
+        if (cyclist.position.z > stoppingPoint) {
+          cyclist.position.z -= Math.max(0.02, (cyclist.position.z - stoppingPoint) * cyclistDeceleration);
+        }
+        if (car.position.z > stoppingPoint) {
+          car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
+        }
+  
+        // Check if both are at the stopping point
+        if (cyclist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
+          cyclist.position.z = stoppingPoint; 
+          car.position.z = stoppingPoint; 
+          cyclist.stopped = true; 
+          car.stopped = true;
+        }
+      } else {
+        // Increment the frame counter after stopping
+        cyclist.takeOffCounter++;
+  
+        // After 120 frames (~2 seconds at 60 FPS), gradually speed up
+        if (cyclist.takeOffCounter > 120) {
+          if (cyclist.currentSpeed < cyclistMaxSpeed) {
+            cyclist.currentSpeed += acceleration; 
+          }
+          if (car.currentSpeed < carMaxSpeed) {
+            car.currentSpeed += acceleration;
+          }
+  
+          cyclist.position.z -= cyclist.currentSpeed; 
+          car.position.z -= car.currentSpeed;
+          gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+          gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+        }
+      }
+      break;
+    default:
+      // Logic for other scenes
+      console.log('Invalid scene selected.');
+
+      break;
+  }
+
+  // Move motorist when right mouse button is held
+  let roadWidth = 1.5;
+  if (isRightMouseDown && (motorist || cyclist)) {
+    if (motorist.position.x < roadWidth) {
+      motorist.position.x += 0.02; // Gradually move motorist away from the center
+      cyclist.position.x += 0.02; // --> currently commented, as without cyclist it's not working correctly
+    } else {
+      motorist.position.x = -roadWidth;
+      cyclist.position.x = -roadWidth;
     }
   }
 
@@ -267,6 +486,7 @@ function animate() {
   // Render the scene
   renderer.render(scene, camera);
 }
+
 animate();
 
 // ===== Handle Window Resize =====
@@ -274,4 +494,12 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
+});
+
+// ===== Handle Start Button Click =====
+document.getElementById("start").addEventListener("click", () => {
+  const sceneId = parseInt(document.getElementById("scene").value, 10);
+  const distance = parseFloat(document.getElementById("distance").value);
+
+  activeScene = sceneId;
 });
