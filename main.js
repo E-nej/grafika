@@ -253,7 +253,7 @@ function startAnimation(sceneId, distance) {
       }
     });
     object.rotation.y = Math.PI / 1000; // Rotate to align with road
-    object.position.set(1.5, 0.4, 20); 
+    object.position.set(distance, 0.4, 20); 
     scene.add(object);
 
     cyclist = object; // Save reference to cyclist
@@ -268,7 +268,7 @@ function startAnimation(sceneId, distance) {
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(1.5, 0.4, 50); // Position the motorist slightly above the road
+    object.position.set(distance, 0.4, 50); // Position the motorist slightly above the road
     scene.add(object);
 
     motorist = object; // Save reference to motorist
