@@ -293,75 +293,80 @@ function animate() {
   // Handle animations based on the active scene
   switch (activeScene) {
     case 1:
-      if (motorist) {
-        motorist.position.z -= 0.09;
-        gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+      if (!motorist || !car) {
+        console.log('Motorist or car not found.');
+        break;
       }
-      if (car) {
-        car.position.z -= 0.05;
-        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-      }
+      motorist.position.z -= 0.09;
+      gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+
+      car.position.z -= 0.05;
+      gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
       break;
 
     case 2:
-      if (cyclist){
-        cyclist.position.z -= 0.05;
-        gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+      if (!cyclist || !car) {
+        console.log('Motorist or car not found.');
+        break;
       }
-      if (car) {
-        car.position.z -= 0.08;
-        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-      }
+      cyclist.position.z -= 0.05;
+      gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+
+      car.position.z -= 0.08;
+      gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
       break;
 
     case 3:
-      if (motorist && car) {
-        const stoppingPoint = 0; 
-        const carDeceleration = 0.005;
-        const motorbikeDeceleration = 0.006;
-        const motoristMaxSpeed = 0.09; 
-        const carMaxSpeed = 0.05; 
-        const acceleration = 0.0005;
-    
-        // Variables to store current speeds and initialization
-        if (motorist.currentSpeed === undefined) motorist.currentSpeed = 0; 
-        if (car.currentSpeed === undefined) car.currentSpeed = 0; 
-        if (motorist.takeOffCounter === undefined) motorist.takeOffCounter = 0; // Frame counter
-    
-        // Slow down and stop at the stopping point
-        if (!motorist.stopped && !car.stopped) {
-          if (motorist.position.z > stoppingPoint) {
-            motorist.position.z -= Math.max(0.02, (motorist.position.z - stoppingPoint) * motorbikeDeceleration);
+      if (!motorist || !car) {
+        console.log('Motorist or car not found.');
+        break;
+      }
+
+      const stoppingPoint = 0; 
+      const carDeceleration = 0.005;
+      const motorbikeDeceleration = 0.006;
+      const motoristMaxSpeed = 0.09; 
+      const carMaxSpeed = 0.05; 
+      const acceleration = 0.0005;
+  
+      // Variables to store current speeds and initialization
+      if (motorist.currentSpeed === undefined) motorist.currentSpeed = 0; 
+      if (car.currentSpeed === undefined) car.currentSpeed = 0; 
+      if (motorist.takeOffCounter === undefined) motorist.takeOffCounter = 0; // Frame counter
+  
+      // Slow down and stop at the stopping point
+      if (!motorist.stopped && !car.stopped) {
+        if (motorist.position.z > stoppingPoint) {
+          motorist.position.z -= Math.max(0.02, (motorist.position.z - stoppingPoint) * motorbikeDeceleration);
+        }
+        if (car.position.z > stoppingPoint) {
+          car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
+        }
+  
+        // Check if both are at the stopping point
+        if (motorist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
+          motorist.position.z = stoppingPoint; 
+          car.position.z = stoppingPoint; 
+          motorist.stopped = true; 
+          car.stopped = true;
+        }
+      } else {
+        // Increment the frame counter after stopping
+        motorist.takeOffCounter++;
+  
+        // After 120 frames (~2 seconds at 60 FPS), gradually speed up
+        if (motorist.takeOffCounter > 120) {
+          if (motorist.currentSpeed < motoristMaxSpeed) {
+            motorist.currentSpeed += acceleration; 
           }
-          if (car.position.z > stoppingPoint) {
-            car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
+          if (car.currentSpeed < carMaxSpeed) {
+            car.currentSpeed += acceleration;
           }
-    
-          // Check if both are at the stopping point
-          if (motorist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
-            motorist.position.z = stoppingPoint; 
-            car.position.z = stoppingPoint; 
-            motorist.stopped = true; 
-            car.stopped = true;
-          }
-        } else {
-          // Increment the frame counter after stopping
-          motorist.takeOffCounter++;
-    
-          // After 120 frames (~2 seconds at 60 FPS), gradually speed up
-          if (motorist.takeOffCounter > 120) {
-            if (motorist.currentSpeed < motoristMaxSpeed) {
-              motorist.currentSpeed += acceleration; 
-            }
-            if (car.currentSpeed < carMaxSpeed) {
-              car.currentSpeed += acceleration;
-            }
-    
-            motorist.position.z -= motorist.currentSpeed; 
-            car.position.z -= car.currentSpeed;
-            gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-            gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-          }
+  
+          motorist.position.z -= motorist.currentSpeed; 
+          car.position.z -= car.currentSpeed;
+          gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+          gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
         }
       }
       break;
