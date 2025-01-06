@@ -13,6 +13,9 @@ const keys = {
   d: false,
 };
 
+// Track right mouse button state
+let isRightMouseDown = false;
+
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -68,6 +71,14 @@ document.addEventListener('keydown', (event) => {
     case 'd':
       keys.d = true;
       break;
+    case ' ': // Space key toggles animation
+      isAnimating = !isAnimating; // Toggle animation state
+      console.log(`Animation is now ${isAnimating ? 'running' : 'paused'}`);
+      break;
+    case 'r': // R key reloads the page
+      console.log('Reloading the page...');
+      location.reload(); // Reload the page
+      break;
   }
 });
 
@@ -85,6 +96,21 @@ document.addEventListener('keyup', (event) => {
     case 'd':
       keys.d = false;
       break;
+  }
+});
+
+// Add mouse event listeners
+document.addEventListener('mousedown', (event) => {
+  if (event.button === 2) { // Right mouse button
+    isRightMouseDown = true;
+    console.log('Right mouse button pressed');
+  }
+});
+
+document.addEventListener('mouseup', (event) => {
+  if (event.button === 2) { // Right mouse button
+    isRightMouseDown = false;
+    console.log('Right mouse button released');
   }
 });
 
@@ -231,6 +257,11 @@ function animate() {
     if (car) {
       car.position.z -= 0.05; // Move car forward
     }
+  }
+
+  // Move motorist when right mouse button is held
+  if (isRightMouseDown && motorist) {
+    motorist.position.x += 0.02; // Gradually move motorist away from the center
   }
 
   // Render the scene
