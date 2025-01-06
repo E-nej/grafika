@@ -367,11 +367,54 @@ function animate() {
       break;
 
     case 4:
-      if (cyclist) {
-        cyclist.position.z -= 0.09;
-      }
-      if (car) {
-        car.position.z -= 0.05;
+      if (cyclist && car) {
+        const stoppingPoint = 0; 
+        const carDeceleration = 0.005;
+        const cyclistDeceleration = 0.0035;
+        const cyclistMaxSpeed = 0.05; 
+        const carMaxSpeed = 0.08; 
+        const acceleration = 0.001;
+    
+        // Variables to store current speeds and initialization
+        if (cyclist.currentSpeed === undefined) cyclist.currentSpeed = 0; 
+        if (car.currentSpeed === undefined) car.currentSpeed = 0; 
+        if (cyclist.takeOffCounter === undefined) cyclist.takeOffCounter = 0; // Frame counter
+    
+        // Slow down and stop at the stopping point
+        if (!cyclist.stopped && !car.stopped) {
+          if (cyclist.position.z > stoppingPoint) {
+            cyclist.position.z -= Math.max(0.02, (cyclist.position.z - stoppingPoint) * cyclistDeceleration);
+          }
+          if (car.position.z > stoppingPoint) {
+            car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
+          }
+    
+          // Check if both are at the stopping point
+          if (cyclist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
+            cyclist.position.z = stoppingPoint; 
+            car.position.z = stoppingPoint; 
+            cyclist.stopped = true; 
+            car.stopped = true;
+          }
+        } else {
+          // Increment the frame counter after stopping
+          cyclist.takeOffCounter++;
+    
+          // After 120 frames (~2 seconds at 60 FPS), gradually speed up
+          if (cyclist.takeOffCounter > 120) {
+            if (cyclist.currentSpeed < cyclistMaxSpeed) {
+              cyclist.currentSpeed += acceleration; 
+            }
+            if (car.currentSpeed < carMaxSpeed) {
+              car.currentSpeed += acceleration;
+            }
+    
+            cyclist.position.z -= cyclist.currentSpeed; 
+            car.position.z -= car.currentSpeed;
+            gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+            gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+          }
+        }
       }
       break;
 
