@@ -490,7 +490,6 @@ function animate() {
     } else {
       controls.target.copy(car.position); // Set the OrbitControls target to the car
     }
-    
   }
 
   // Render the scene
