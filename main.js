@@ -2,8 +2,9 @@ import * as THREE from './node_modules/three/build/three.module.js';
 import { OBJLoader } from './node_modules/three/examples/jsm/loaders/OBJLoader.js';
 import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitControls.js';
 
-// Movement speed for the camera
-const cameraSpeed = 1; // Adjust this value for faster/slower movement
+const cameraSpeed = 0.2;
+const MAX_BOUNDARY_Z = 50; 
+const MIN_BOUNDARY_Z = -50; 
 
 // Track key states to allow smooth movement
 const keys = {
@@ -33,7 +34,7 @@ const renderer = new THREE.WebGLRenderer({
 // Set up renderer
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-camera.position.set(10, 10, 20); // Set initial camera position
+camera.position.set(10, 10, 10); // Set initial camera position
 camera.lookAt(0, 0, 0); // Make the camera look at the center of the scene
 
 // ===== Set Up OrbitControls =====
@@ -133,8 +134,8 @@ function updateCameraMovement() {
   // Update camera position based on key states
   if (keys.w) camera.position.add(forward.clone().multiplyScalar(cameraSpeed)); // Move forward
   if (keys.s) camera.position.add(forward.clone().multiplyScalar(-cameraSpeed)); // Move backward
-  if (keys.a) camera.position.add(right.clone().multiplyScalar(-cameraSpeed)); // Move left
-  if (keys.d) camera.position.add(right.clone().multiplyScalar(cameraSpeed)); // Move right
+  if (keys.a) camera.position.add(right.clone().multiplyScalar(cameraSpeed)); // Move left
+  if (keys.d) camera.position.add(right.clone().multiplyScalar(-cameraSpeed)); // Move right
 }
 
 // Objects and animation flag
@@ -202,7 +203,7 @@ function startAnimation(sceneId, distance) {
   }
 
   // Create the road
-  createStraightRoad(6); // Create a road with 10 sections
+  createStraightRoad(9);
 
   const objLoader = new OBJLoader();
   const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
@@ -217,7 +218,7 @@ function startAnimation(sceneId, distance) {
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, -10); // Position the car slightly above the road
+    object.position.set(0, 0.2, 35); // Position the car slightly above the road
     scene.add(object);
 
     car = object; // Save reference to car
@@ -226,17 +227,17 @@ function startAnimation(sceneId, distance) {
   if (sceneId % 2 === 0) {
     // Load bikered.obj
     objLoader.load('./models/bikered.obj', (object) => {
-    centerAndScaleObject(object, 0.15); // Scale up the motorist
+    centerAndScaleObject(object, 0.15); // Scale up the cyclist
     object.traverse((child) => {
       if (child.isMesh) {
-        child.material = redMaterial; // Apply white material
+        child.material = redMaterial; 
       }
     });
-    object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
+    object.rotation.y = Math.PI / 1000; // Rotate to align with road
+    object.position.set(0.8, 0.2, 20); 
     scene.add(object);
 
-    cyclist = object; // Save reference to motorist
+    cyclist = object; // Save reference to cyclist
   });
   } else {
     // Load motorist.obj
@@ -244,11 +245,11 @@ function startAnimation(sceneId, distance) {
     centerAndScaleObject(object, 0.15); // Scale up the motorist
     object.traverse((child) => {
       if (child.isMesh) {
-        child.material = redMaterial; // Apply white material
+        child.material = redMaterial; 
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, 10); // Position the motorist slightly above the road
+    object.position.set(0.8, 0.2, 50); // Position the motorist slightly above the road
     scene.add(object);
 
     motorist = object; // Save reference to motorist
@@ -276,12 +277,15 @@ function animate() {
   // Update camera movement
   updateCameraMovement();
 
-  
-
   // Early return if not animating
   if (!isAnimating) {
     renderer.render(scene, camera);
     return;
+  }
+
+  function gridBoundary(object, minZ, maxZ) {
+    if (object.position.z > maxZ) object.position.z = maxZ;
+    if (object.position.z < minZ) object.position.z = minZ;
   }
 
   // Handle animations based on the active scene
@@ -289,22 +293,24 @@ function animate() {
     case 1:
       if (motorist) {
         motorist.position.z -= 0.09;
+        gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
       }
       if (car) {
         car.position.z -= 0.05;
+        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
       }
       break;
     case 2:
-      // Scene 2 logic here
       if (cyclist){
-        cyclist.position.z -= 0.09;
+        cyclist.position.z -= 0.05;
+        gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
       }
       if (car) {
-        car.position.z -= 0.05;
+        car.position.z -= 0.08;
+        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
       }
       break;
     case 3:
-      // Scene 3 logic here
       if (motorist) {
         motorist.position.z -= 0.09;
       }
@@ -313,7 +319,6 @@ function animate() {
       }
       break;
     case 4:
-      // Scene 4 logic here
       if (cyclist) {
         cyclist.position.z -= 0.09;
       }
@@ -334,10 +339,10 @@ function animate() {
   if (isRightMouseDown && (motorist || cyclist)) {
     if (motorist.position.x < roadWidth) {
       motorist.position.x += 0.02; // Gradually move motorist away from the center
-      //cyclist.position.x += 0.02; --> currently commented, as without cyclist it's not working correctly
+      cyclist.position.x += 0.02; // --> currently commented, as without cyclist it's not working correctly
     } else {
       motorist.position.x = -roadWidth;
-      //cyclist.position.x = -roadWidth;
+      cyclist.position.x = -roadWidth;
     }
   }
 
