@@ -90,6 +90,26 @@ controls.maxDistance = 50;
 //const axesHelper = new THREE.AxesHelper(5);
 //scene.add(axesHelper);
 
+let grassPlane;
+
+function addGrassPlane() {
+  const planeGeometry = new THREE.PlaneGeometry(100, 100);
+  const grassMaterial = new THREE.MeshBasicMaterial({
+    color: 0x00ff00,
+    side: THREE.DoubleSide,
+  });
+
+  grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Assign to global variable
+
+  grassPlane.rotation.x = -Math.PI / 2;
+  grassPlane.position.set(0, 0, 0);
+
+  scene.add(grassPlane);
+  return grassPlane;
+}
+
+grassPlane = addGrassPlane();
+
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
 const startButton = document.getElementById('start');
@@ -224,7 +244,7 @@ function createStraightRoad(roadLength) {
 
       // Correct rotation to ensure road is flat
       object.rotation.y = -Math.PI / 2; // Lay flat on the ground
-      object.position.set(0, 0, i * 5); // Position along the Z-axis
+      object.position.set(0, 0.01, i * 5); // Position along the Z-axis
 
       // Add the road section to the scene
       scene.add(object);
@@ -239,8 +259,9 @@ function startAnimation(sceneId, distance) {
   // Clear previous models
   for (let i = scene.children.length - 1; i >= 0; i--) {
     const obj = scene.children[i];
-    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper || obj === sky)) { // Skip the sky object
+    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper || obj === sky || obj === grassPlane)) { 
       scene.remove(obj);
+      console.log('Removed object:', obj);
     }
   }
 
