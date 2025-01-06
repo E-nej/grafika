@@ -140,6 +140,18 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
+function toggleMenu() {
+  // Get the current display state of the menu
+  const menuDisplay = window.getComputedStyle(menu).display;
+
+  // Toggle the visibility of the menu
+  if (menuDisplay === 'none') {
+    menu.style.display = 'block'; // Show the menu
+  } else {
+    menu.style.display = 'none'; // Hide the menu
+  }
+}
+
 // Add event listeners for key presses
 document.addEventListener('keydown', (event) => {
   switch (event.key.toLowerCase()) {
@@ -167,6 +179,8 @@ document.addEventListener('keydown', (event) => {
       perspectiveFlag = !perspectiveFlag; // Toggle perspective view
       console.log(`Perspective view is now ${perspectiveFlag ? 'enabled' : 'disabled'}`);
       break;
+    case 'm': 
+      toggleMenu(); // Call the toggleMenu function when "M" is pressed
   }
 });
 
@@ -231,10 +245,8 @@ startButton.addEventListener('click', () => {
   const distance = parseFloat(distanceInput.value);
 
   console.log(`Starting animation: Scene ${selectedScene}, Distance: ${distance}`);
-
   // Hide the menu
-  menu.classList.add('hidden');
-
+  toggleMenu();
   // Start animation logic
   startAnimation(selectedScene, distance);
   isAnimating = true; // Enable animation
