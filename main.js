@@ -374,7 +374,7 @@ function startAnimation(sceneId, distance) {
 
   const objLoader = new OBJLoader();
   const carTexture = new THREE.TextureLoader().load('./textures/car-texture.jpg');
-
+  const motoristTecture = new THREE.TextureLoader().load('./textures/test-mesh2.jpg');
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
@@ -416,7 +416,18 @@ function startAnimation(sceneId, distance) {
     centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
       if (child.isMesh) {
-        child.material = redMaterial; 
+        //child.material = redMaterial; 
+        child.material = new THREE.MeshStandardMaterial({
+          color: 0x0077ff, // Blue color
+          metalness: 0.5,  // Makes the surface metallic
+          roughness: 0.5,  // Controls the roughness of the surface
+        });
+        /*
+        child.material = new THREE.MeshStandardMaterial({
+          map: motoristTecture, // Use the loaded texture
+        });
+        */
+
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
