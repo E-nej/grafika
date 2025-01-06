@@ -39,6 +39,8 @@ let perspectiveFlag = false; // Flag to enable/disable perspective view
 // materials
 const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
 const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+const modra = new THREE.MeshBasicMaterial({ color: 0x0000FF });
+
 // Track right mouse button state
 let isRightMouseDown = false;
 
@@ -416,12 +418,14 @@ function startAnimation(sceneId, distance) {
     centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
       if (child.isMesh) {
-        //child.material = redMaterial; 
+        child.material = modra; 
+        /*
         child.material = new THREE.MeshStandardMaterial({
           color: 0x0077ff, // Blue color
           metalness: 0.5,  // Makes the surface metallic
           roughness: 0.5,  // Controls the roughness of the surface
         });
+        */
         /*
         child.material = new THREE.MeshStandardMaterial({
           map: motoristTecture, // Use the loaded texture
