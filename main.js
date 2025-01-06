@@ -46,6 +46,7 @@ let isRightMouseDown = false;
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#bg'),
@@ -55,7 +56,7 @@ const renderer = new THREE.WebGLRenderer({
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
 camera.position.set(10, 10, 10); // Set initial camera position
-camera.lookAt(0, 0, 0); // Make the camera look at the center of the scene
+//camera.lookAt(0, 0, 0); // Make the camera look at the center of the scene
 
 // ===== Set Up OrbitControls =====
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -241,6 +242,9 @@ function startAnimation(sceneId, distance) {
     scene.add(object);
 
     car = object; // Save reference to car
+    car.add(camera);
+    camera.position.set(0, 5, -5); // Adjust the camera's offset behind and above the car
+    camera.lookAt(car.position); // Make the camera look at the car's center
   });
 
   if (sceneId % 2 === 0) {
@@ -302,162 +306,97 @@ function animate() {
     return;
   }
 
+  // Utility function: Constrain object position within boundaries
   function gridBoundary(object, minZ, maxZ) {
     if (object.position.z > maxZ) object.position.z = maxZ;
     if (object.position.z < minZ) object.position.z = minZ;
   }
 
-  let stopTime = null;
+  // Utility function: Handle stop-and-go behavior
+  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
+    if (object.currentSpeed === undefined) object.currentSpeed = 0;
+    if (object.takeOffCounter === undefined) object.takeOffCounter = 0;
 
-  // Handle animations based on the active scene
-  switch (activeScene) {
-    case 1:
-      if (!motorist || !car) {
-        console.log('Motorist or car not found.');
-        break;
-      }
-      motorist.position.z -= 0.09;
-      gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-
-      car.position.z -= 0.05;
-      gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-      break;
-
-    case 2:
-      if (!cyclist || !car) {
-        console.log('Motorist or car not found.');
-        break;
-      }
-      cyclist.position.z -= 0.05;
-      gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-
-      car.position.z -= 0.08;
-      gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-      break;
-
-    case 3:
-      if (!motorist || !car) {
-        console.log('Motorist or car not found.');
-        break;
-      }
-
-      // Variables to store current speeds and initialization
-      if (motorist.currentSpeed === undefined) motorist.currentSpeed = 0; 
-      if (car.currentSpeed === undefined) car.currentSpeed = 0; 
-      if (motorist.takeOffCounter === undefined) motorist.takeOffCounter = 0; // Frame counter
-  
-      // Slow down and stop at the stopping point
-      if (!motorist.stopped && !car.stopped) {
-        if (motorist.position.z > stoppingPoint) {
-          motorist.position.z -= Math.max(0.02, (motorist.position.z - stoppingPoint) * motorbikeDeceleration);
-        }
-        if (car.position.z > stoppingPoint) {
-          car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
-        }
-  
-        // Check if both are at the stopping point
-        if (motorist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
-          motorist.position.z = stoppingPoint; 
-          car.position.z = stoppingPoint; 
-          motorist.stopped = true; 
-          car.stopped = true;
-        }
+    if (!object.stopped) {
+      // Slow down to the stopping point
+      if (object.position.z > stoppingPoint) {
+        object.position.z -= Math.max(0.02, (object.position.z - stoppingPoint) * deceleration);
       } else {
-        // Increment the frame counter after stopping
-        motorist.takeOffCounter++;
-  
-        // After 120 frames (~2 seconds at 60 FPS), gradually speed up
-        if (motorist.takeOffCounter > 120) {
-          if (motorist.currentSpeed < motoristMaxSpeed) {
-            motorist.currentSpeed += acceleration; 
-          }
-          if (car.currentSpeed < carMaxSpeed) {
-            car.currentSpeed += acceleration;
-          }
-  
-          motorist.position.z -= motorist.currentSpeed; 
-          car.position.z -= car.currentSpeed;
-          gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-          gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-        }
+        object.position.z = stoppingPoint;
+        object.stopped = true;
       }
-      break;
-
-    case 4:
-      if (!cyclist || !car) {
-        console.log('Cyclist or car not found.');
-        break;
-      }
-
-      // Variables to store current speeds and initialization
-      if (cyclist.currentSpeed === undefined) cyclist.currentSpeed = 0; 
-      if (car.currentSpeed === undefined) car.currentSpeed = 0; 
-      if (cyclist.takeOffCounter === undefined) cyclist.takeOffCounter = 0; // Frame counter
-  
-      // Slow down and stop at the stopping point
-      if (!cyclist.stopped && !car.stopped) {
-        if (cyclist.position.z > stoppingPoint) {
-          cyclist.position.z -= Math.max(0.02, (cyclist.position.z - stoppingPoint) * cyclistDeceleration);
-        }
-        if (car.position.z > stoppingPoint) {
-          car.position.z -= Math.max(0.02, (car.position.z - stoppingPoint) * carDeceleration);
-        }
-  
-        // Check if both are at the stopping point
-        if (cyclist.position.z <= stoppingPoint + 0.1 && car.position.z <= stoppingPoint + 0.1) {
-          cyclist.position.z = stoppingPoint; 
-          car.position.z = stoppingPoint; 
-          cyclist.stopped = true; 
-          car.stopped = true;
-        }
-      } else {
-        // Increment the frame counter after stopping
-        cyclist.takeOffCounter++;
-  
-        // After 120 frames (~2 seconds at 60 FPS), gradually speed up
-        if (cyclist.takeOffCounter > 120) {
-          if (cyclist.currentSpeed < cyclistMaxSpeed) {
-            cyclist.currentSpeed += acceleration; 
-          }
-          if (car.currentSpeed < carMaxSpeed) {
-            car.currentSpeed += acceleration;
-          }
-  
-          cyclist.position.z -= cyclist.currentSpeed; 
-          car.position.z -= car.currentSpeed;
-          gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-          gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-        }
-      }
-      break;
-    default:
-      // Logic for other scenes
-      console.log('Invalid scene selected.');
-
-      break;
-  }
-
-  // Move motorist when right mouse button is held
-  let roadWidth = 1.5;
-  if (isRightMouseDown && (motorist || cyclist)) {
-    if (motorist.position.x < roadWidth) {
-      motorist.position.x += 0.02; // Gradually move motorist away from the center
-      cyclist.position.x += 0.02; // --> currently commented, as without cyclist it's not working correctly
     } else {
-      motorist.position.x = -roadWidth;
-      cyclist.position.x = -roadWidth;
+      // Increment counter and start speeding up after stopping
+      object.takeOffCounter++;
+      if (object.takeOffCounter > 120) { // ~2 seconds at 60 FPS
+        if (object.currentSpeed < maxSpeed) {
+          object.currentSpeed += acceleration;
+        }
+        object.position.z -= object.currentSpeed;
+      }
     }
+    gridBoundary(object, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
   }
 
-  // Move motorist when right mouse button is held
+  // Scene-specific animations
+  switch (activeScene) {
+    case 1: // Scene 1: Motorist and car
+      if (motorist && car) {
+        motorist.position.z -= 0.09;
+        car.position.z -= 0.05;
+        gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+      } else {
+        console.log('Motorist or car not found.');
+      }
+      break;
+
+    case 2: // Scene 2: Cyclist and car
+      if (cyclist && car) {
+        cyclist.position.z -= 0.05;
+        car.position.z -= 0.08;
+        gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
+      } else {
+        console.log('Cyclist or car not found.');
+      }
+      break;
+
+    case 3: // Scene 3: Stop-and-go behavior for motorist and car
+      if (motorist && car) {
+        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, acceleration);
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, acceleration);
+      } else {
+        console.log('Motorist or car not found.');
+      }
+      break;
+
+    case 4: // Scene 4: Stop-and-go behavior for cyclist and car
+      if (cyclist && car) {
+        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, acceleration);
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, acceleration);
+      } else {
+        console.log('Cyclist or car not found.');
+      }
+      break;
+
+    default:
+      console.log('Invalid scene selected.');
+      break;
+  }
+
+  // Handle lateral movement (e.g., mouse-driven adjustments)
+  let roadWidth = 1.5;
   if (isRightMouseDown && motorist) {
-    motorist.position.x += 0.02; // Gradually move motorist away from the center
+    motorist.position.x = (motorist.position.x + 0.02) % roadWidth;
+  }
+  if (isRightMouseDown && cyclist) {
+    cyclist.position.x = (cyclist.position.x + 0.02) % roadWidth;
   }
 
   // Render the scene
   renderer.render(scene, camera);
 }
-
 animate();
 
 // ===== Handle Window Resize =====
