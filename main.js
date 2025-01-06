@@ -19,9 +19,6 @@ client.on("message", (topic, message) => {
   client.end();
 });
 
-// MQTT client setup that is not over websockets on ip address 192.168.0.106
-//const client = mqtt.connect('mqtt://192.168.0.106:1883');
-
 const cameraSpeed = 0.2;
 const MAX_BOUNDARY_Z = 50; 
 const MIN_BOUNDARY_Z = -50; 
@@ -46,8 +43,6 @@ const cyclistMaxSpeed = 0.05;
 
 // Track right mouse button state
 let isRightMouseDown = false;
-
-
 
 // ===== Create Scene, Camera, and Renderer =====
 const scene = new THREE.Scene();
@@ -112,14 +107,6 @@ document.addEventListener('keydown', (event) => {
       console.log('Reloading the page...');
       location.reload(); // Reload the page
       break;
-    case ' ': // Space key toggles animation
-      isAnimating = !isAnimating; // Toggle animation state
-      console.log(`Animation is now ${isAnimating ? 'running' : 'paused'}`);
-      break;
-    case 'r': // R key reloads the page
-      console.log('Reloading the page...');
-      location.reload(); // Reload the page
-      break;
   }
 });
 
@@ -137,21 +124,6 @@ document.addEventListener('keyup', (event) => {
     case 'd':
       keys.d = false;
       break;
-  }
-});
-
-// Add mouse event listeners
-document.addEventListener('mousedown', (event) => {
-  if (event.button === 2) { // Right mouse button
-    isRightMouseDown = true;
-    console.log('Right mouse button pressed');
-  }
-});
-
-document.addEventListener('mouseup', (event) => {
-  if (event.button === 2) { // Right mouse button
-    isRightMouseDown = false;
-    console.log('Right mouse button released');
   }
 });
 
@@ -219,9 +191,8 @@ function createStraightRoad(roadLength) {
         console.error('Failed to load the cesta.obj file.');
         return;
       }
-
       // Center and scale each road section
-      centerAndScaleObject(object, 0.5); // Adjust the scale factor as needed
+      centerAndScaleObject(object, 1); // Adjust the scale factor as needed
       object.traverse((child) => {
         if (child.isMesh) {
           child.material = roadMaterial; // Apply the road material
@@ -259,14 +230,14 @@ function startAnimation(sceneId, distance) {
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
-    centerAndScaleObject(object, 0.1); // Scale and center the model
+    centerAndScaleObject(object, 0.3); // Scale and center the model
     object.traverse((child) => {
       if (child.isMesh) {
         child.material = whiteMaterial; // Apply white material
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0, 0.2, 35); // Position the car slightly above the road
+    object.position.set(0, 0.5, 35); // Position the car slightly above the road
     scene.add(object);
 
     car = object; // Save reference to car
@@ -275,14 +246,14 @@ function startAnimation(sceneId, distance) {
   if (sceneId % 2 === 0) {
     // Load bikered.obj
     objLoader.load('./models/bikered.obj', (object) => {
-    centerAndScaleObject(object, 0.15); // Scale up the cyclist
+    centerAndScaleObject(object, 0.3); // Scale up the cyclist
     object.traverse((child) => {
       if (child.isMesh) {
         child.material = redMaterial; 
       }
     });
     object.rotation.y = Math.PI / 1000; // Rotate to align with road
-    object.position.set(0.8, 0.2, 20); 
+    object.position.set(1.5, 0.4, 20); 
     scene.add(object);
 
     cyclist = object; // Save reference to cyclist
@@ -290,14 +261,14 @@ function startAnimation(sceneId, distance) {
   } else {
     // Load motorist.obj
     objLoader.load('./models/motorist.obj', (object) => {
-    centerAndScaleObject(object, 0.15); // Scale up the motorist
+    centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
       if (child.isMesh) {
         child.material = redMaterial; 
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
-    object.position.set(0.8, 0.2, 50); // Position the motorist slightly above the road
+    object.position.set(1.5, 0.4, 50); // Position the motorist slightly above the road
     scene.add(object);
 
     motorist = object; // Save reference to motorist
