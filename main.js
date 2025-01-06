@@ -271,7 +271,6 @@ function createStraightRoad(roadLength) {
   roadTexture.repeat.set(10, 10);  // Adjust the number of repetitions
   const roadMaterial = new THREE.MeshBasicMaterial({ map: roadTexture });
 
-
   for (let i = -roadLength; i <= roadLength; i++) {
     objLoader.load('./models/cesta.obj', (object) => {
       if (!object) {
@@ -298,6 +297,7 @@ function createStraightRoad(roadLength) {
   }
 }
 
+let carPosition = new THREE.Vector3();
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
   // Clear previous models
@@ -328,7 +328,7 @@ function startAnimation(sceneId, distance) {
     scene.add(object);
 
     car = object; // Save reference to car
-  
+    carPosition = car.position;
   });
 
   if (sceneId % 2 === 0) {
@@ -487,6 +487,8 @@ function animate() {
 
       //Make the camera look at the car
       camera.lookAt(car.position);
+    } else {
+      controls.target.copy(car.position); // Set the OrbitControls target to the car
     }
     
   }
