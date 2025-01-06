@@ -95,9 +95,13 @@ let grassPlane;
 
 function addGrassPlane() {
   const planeGeometry = new THREE.PlaneGeometry(100, 100);
+  // add texture
+  const grassTexture = new THREE.TextureLoader().load('./textures/grass-texture.jpg');
+  grassTexture.wrapS = THREE.RepeatWrapping;
+  grassTexture.wrapT = THREE.RepeatWrapping;
+  grassTexture.repeat.set(10, 10); // Adjust this to repeat the texture
   const grassMaterial = new THREE.MeshBasicMaterial({
-    color: 0x00ff00,
-    side: THREE.DoubleSide,
+    map: grassTexture,
   });
 
   grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Assign to global variable
