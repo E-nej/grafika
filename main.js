@@ -37,7 +37,7 @@ const cyclistMaxSpeed = 0.05;
 let perspectiveFlag = false; // Flag to enable/disable perspective view
 
 // materials
-const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
 const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
 // Track right mouse button state
 let isRightMouseDown = false;
@@ -51,7 +51,7 @@ sky.scale.setScalar(450000); // Adjust size of sky dome
 
 const phi = THREE.MathUtils.degToRad( 90 );
 const theta = THREE.MathUtils.degToRad( 180 );
-const sunPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi, theta );
+const sunPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi/2, theta/2 );
 
 sky.material.uniforms.sunPosition.value = sunPosition;
 
