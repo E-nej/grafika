@@ -541,18 +541,49 @@ function animate() {
     gridBoundary(object, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
   }
 
+  function handleFalling(object, boundary, isMaxBoundary) {
+    if (!object.falling) {
+      // Check if the object is at the boundary
+      if ((isMaxBoundary && object.position.z >= boundary) || (!isMaxBoundary && object.position.z <= boundary)) {
+        object.falling = true; // Mark as falling
+        object.fallCounter = 0; // Initialize fall counter
+      }
+    } else {
+      // Falling animation logic
+      object.fallCounter++;
+      object.rotation.x += 0.1; // Rotate for a tumbling effect
+      object.position.y -= 0.2; // Move downward
+      object.position.z += isMaxBoundary ? 0.1 : -0.1; // Slight z-axis adjustment for realism
+  
+      // Remove object if it falls too far
+      if (object.position.y < -20) {
+        scene.remove(object); // Remove the object from the scene
+        console.log('Object fell off and was removed:', object);
+      }
+    }
+  }  
+
   // Scene-specific animations
   switch (activeScene) {
     case 1: // Scene 1: Motorist and car
-      if (motorist && car) {
-        motorist.position.z -= 0.09;
-        car.position.z -= 0.05;
-        gridBoundary(motorist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-        gridBoundary(car, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-      } else {
-        console.log('Motorist or car not found.');
-      }
-      break;
+    if (motorist && car) {
+    // Motorist movement or falling
+    if (motorist.position.z > MAX_BOUNDARY_Z || motorist.position.z < MIN_BOUNDARY_Z) {
+      handleFalling(motorist, motorist.position.z > MAX_BOUNDARY_Z ? MAX_BOUNDARY_Z : MIN_BOUNDARY_Z, motorist.position.z > MAX_BOUNDARY_Z);
+    } else {
+      motorist.position.z -= 0.09;
+    }
+
+    // Car movement or falling
+    if (car.position.z > MAX_BOUNDARY_Z || car.position.z < MIN_BOUNDARY_Z) {
+      handleFalling(car, car.position.z > MAX_BOUNDARY_Z ? MAX_BOUNDARY_Z : MIN_BOUNDARY_Z, car.position.z > MAX_BOUNDARY_Z);
+    } else {
+      car.position.z -= 0.05;
+    }
+    } else {
+    console.log('Motorist or car not found.');
+    }
+    break;
 
     case 2: // Scene 2: Cyclist and car
       if (cyclist && car) {
