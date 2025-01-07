@@ -185,7 +185,7 @@ function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
     const z = Math.random() * worldSize - worldSize / 2;
 
     // Skip positions within the road boundaries
-    if (Math.abs(x) < roadWidth / 2 && Math.abs(z) < roadLength / 2) {
+    if (Math.abs(x) < roadWidth && Math.abs(z) < roadLength) {
       i--; // Retry this iteration
       continue;
     }
@@ -201,7 +201,7 @@ function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
 const worldSize = 100; // Define the size of the world
 const roadWidth = 10;  // Width of the road
 const roadLength = 50; // Length of the road
-const numTrees = 100;  // Number of trees to generate
+const numTrees = 50;  // Number of trees to generate
 
 generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
 
