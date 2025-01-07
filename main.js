@@ -479,7 +479,6 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
 
 let modelsToClear = [];
 
-let carPosition = new THREE.Vector3();
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
   // Clear previous models
