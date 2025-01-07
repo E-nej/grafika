@@ -372,11 +372,11 @@ function startAnimation(sceneId, distance) {
   }
 
   // Create the road
-  createStraightRoad(9);
+  createStraightRoad(7);
 
   const objLoader = new OBJLoader();
   const carTexture = new THREE.TextureLoader().load('./textures/car-texture.jpg');
-  const motoristTecture = new THREE.TextureLoader().load('./textures/test-mesh2.jpg');
+  const motoristTexture = new THREE.TextureLoader().load('./textures/test-mesh2.jpg');
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
@@ -552,7 +552,7 @@ function animate() {
   }
 
   // Handle lateral movement (e.g., mouse-driven adjustments)
-  let roadWidth = 1.5;
+  let roadWidth = 4.5;
   if (isRightMouseDown && motorist) {
     motorist.position.x = (motorist.position.x + 0.02) % roadWidth;
   }
