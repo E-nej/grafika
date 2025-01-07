@@ -493,6 +493,17 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
   }
 }
 
+function clear(){
+  for (let i = scene.children.length - 1; i >= 0; i--) {
+    const obj = scene.children[i];
+    if ( obj !== camera && obj !== directionalLight && obj !== ambientLight && obj !== sky) { 
+      scene.remove(obj);
+      //console.log('Removed object:', obj);
+    }
+  }
+  
+}
+
 let modelsToClear = [];
 let roadSections = []; // Store the road sections for later removal
 
@@ -504,30 +515,13 @@ let carPosition; // Keep track of the car's position
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
   // Clear previous models
-  for (let i = scene.children.length - 1; i >= 0; i--) {
-    const obj = scene.children[i];
-    if ( modelsToClear.includes(obj) ) { 
-      scene.remove(obj);
-      console.log('Removed object:', obj);
-    }
-  }
-
-  // Clear the road sections
-  for (let i = roadSections.length - 1; i >= 0; i--) {
-    const road = roadSections[i];
-    scene.remove(road); // Remove the road section from the scene
-  }
-  // Reset the grass planes
-  for (let i = grassPlanes.length - 1; i >= 0; i--) {
-    console.log('Removing grass plane...');
-    const grassPlane = grassPlanes[i];
-    scene.remove(grassPlane); // Remove the grass plane from the scene
-  }
+  clear();
 
   roadThreshold = 0; // Reset the road threshold
   lastGrassZPosition = 100;
 
   // Create the road
+  
   createInitialRoad();
   generateGrassPlanes();
 
@@ -607,9 +601,12 @@ function startAnimation(sceneId, distance) {
 function createInitialRoad() {
   const startZ = 35; // Starting coordinate for the road
   const endZ = -40;  // Ending coordinate for the road
-  const roadLength = 10; // Assuming each road section is 10 units long
+  const roadLength = 20; // Assuming each road section is 10 units long
 
   let currentZ = startZ; // Initialize current Z position to the starting coordinate
+  // Remove old road sections before creating new ones
+  console.log('Removing old road sections...' + roadSections.length);
+  removeOldRoadSections(roadSections.length);
 
   while (currentZ > endZ) {
     // Create a new road section
@@ -641,6 +638,7 @@ function centerAndScaleObject(object, scaleFactor) {
 // ===== Road Generation Function =====
 function createRoadAhead() {
   // Create new road sections ahead of the car and get the returned array of roads
+  console.log("roadSections: ", roadSections.length);
   const roads = createStraightRoad(roadNum);
 
   // For each road section returned, position it and add to the array
@@ -654,6 +652,8 @@ function createRoadAhead() {
 
   // Update the last Z position after creating the road
   lastZPosition = roads[roads.length - 1].position.z + roadLength;
+
+  console.log("Road size: ", roadSize);
 
   // Remove old road sections that are too far behind the car
   removeOldRoadSections(roadSize);
