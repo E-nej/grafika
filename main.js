@@ -103,31 +103,32 @@ controls.minDistance = 5;
 //const axesHelper = new THREE.AxesHelper(5);
 //scene.add(axesHelper);
 
-let grassPlane;
+let grassPlanes = [];
 
-function addGrassPlane() {
+function addGrassPlane(zPosition = 0) {
   const planeGeometry = new THREE.PlaneGeometry(100, 100);
-  // add texture
+  
+  // Add texture
   const grassTexture = new THREE.TextureLoader().load('./textures/grass-texture.jpg');
   grassTexture.wrapS = THREE.RepeatWrapping;
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(10, 10); // Adjust this to repeat the texture
+  
   const grassMaterial = new THREE.MeshBasicMaterial({
     map: grassTexture,
   });
 
-  grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Assign to global variable
-
+  const grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Create a new grass plane
+  
   grassPlane.receiveShadow = true; // Grass will display shadows cast by other objects
-
+  
   grassPlane.rotation.x = -Math.PI / 2;
-  grassPlane.position.set(0, 0, 0);
-
+  grassPlane.position.set(0, 0, zPosition); // Position the grass plane at the specified Z position
+  
   scene.add(grassPlane);
+
   return grassPlane;
 }
-
-grassPlane = addGrassPlane();
 
 // get positions for MQTT message
 function getPositions() {
@@ -171,7 +172,7 @@ function sendPositions() {
       if (err) {
         console.error("Failed to send positions:", err);
       } else {
-        console.log("Positions sent:", message);
+        //console.log("Positions sent:", message);
       }
     });
   }
@@ -376,6 +377,10 @@ const roadNum = 10;
 const numTrees = 50;  // Number of trees to generate
 const numBuildings = 10;
 
+let grassPlaneThreshold = 0; // Distance threshold for adding grass planes
+let grassPlaneLength = 100; // Length of each grass plane
+let lastGrassZPosition = 100; // Tracks the last Z position of generated grass
+
 function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 }) {
   const buildingGroup = new THREE.Group();
 
@@ -493,7 +498,6 @@ let roadSections = []; // Store the road sections for later removal
 
 let lastZPosition = 0;  // Keep track of the last Z position where we generated the road and objects
 let roadThreshold = 0; // Threshold to generate new roads (ahead of the car)
-let objectThreshold = 50; // Threshold to generate new objects (ahead of the car)
 
 let carPosition; // Keep track of the car's position
 
@@ -508,10 +512,26 @@ function startAnimation(sceneId, distance) {
     }
   }
 
+  // Clear the road sections
+  for (let i = roadSections.length - 1; i >= 0; i--) {
+    const road = roadSections[i];
+    scene.remove(road); // Remove the road section from the scene
+  }
+  // Reset the grass planes
+  for (let i = grassPlanes.length - 1; i >= 0; i--) {
+    console.log('Removing grass plane...');
+    const grassPlane = grassPlanes[i];
+    scene.remove(grassPlane); // Remove the grass plane from the scene
+  }
+
   roadThreshold = 0; // Reset the road threshold
+  lastGrassZPosition = 100;
 
   // Create the road
   createInitialRoad();
+  generateGrassPlanes();
+
+  lastGrassZPosition = 0;
 
   const objLoader = new OBJLoader();
   const carTexture = new THREE.TextureLoader().load('./textures/car-texture.jpg');
@@ -645,8 +665,7 @@ function removeOldRoadSections(numSections = 1) {
     // Remove `numSections` of road sections from the start of the array
     for (let i = 0; i < numSections; i++) {
       const road = roadSections[0]; // Get the first road section
-      console.log('Removing road section:', road);
-
+      //console.log('Removing road section:', road);
       // Remove the road section from the scene
       scene.remove(road);
 
@@ -654,6 +673,21 @@ function removeOldRoadSections(numSections = 1) {
       roadSections.shift(); // Removes the first element from the array
     }
   }
+}
+let total = 0;
+function generateGrassPlanes() {
+    lastGrassZPosition -= grassPlaneLength;
+    const newGrassPlane = addGrassPlane(lastGrassZPosition);
+    
+    grassPlanes.push(newGrassPlane); // Add the new grass plane to the array
+    total += 1;
+    // If there are more than two grass planes, remove the oldest one
+    if (grassPlanes.length > 2) {
+      total -= 1;
+      console.log('Removing oldest grass plane...');
+      const oldestGrassPlane = grassPlanes.shift(); // Remove the first grass plane from the array
+      scene.remove(oldestGrassPlane); // Remove it from the scene
+    }
 }
 
 // ===== Animation Loop =====
@@ -678,6 +712,10 @@ function animate() {
       roadThreshold -= 35; // Move the threshold backward to generate new road sections
       console.log('Generating new road sections...');
       createRoadAhead(); // Generate a new section of the road
+    }
+    if (car.position.z < grassPlaneThreshold) {
+      grassPlaneThreshold -= 100; // Move the threshold backward to generate new grass planes
+      generateGrassPlanes(); // Generate new grass planes
     }
   }
 
