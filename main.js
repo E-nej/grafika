@@ -34,7 +34,7 @@ const acceleration = 0.0005;
 const cyclistDeceleration = 0.0035;
 const cyclistMaxSpeed = 0.05; 
 
-let perspectiveFlag = false; // Flag to enable/disable perspective view
+let perspectiveCount= 0; // Flag to enable/disable perspective view
 
 // materials
 const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
@@ -246,7 +246,7 @@ document.addEventListener('keydown', (event) => {
       location.reload(); // Reload the page
       break;
     case 'p': // P key toggles perspective view
-      perspectiveFlag = !perspectiveFlag; // Toggle perspective view
+      perspectiveCount += 1; // Toggle perspective view
       console.log(`Perspective view is now ${perspectiveFlag ? 'enabled' : 'disabled'}`);
       break;
     case 'm': 
@@ -354,6 +354,7 @@ function createStraightRoad(roadLength) {
       scene.add(object);
 
       console.log(`Road section ${i} added at position:`, object.position);
+      modelsToClear.push(object); // Add road section to the list of models to
     });
   }
 }
@@ -478,6 +479,13 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
 }
 
 let modelsToClear = [];
+let roadSections = []; // Store the road sections for later removal
+
+let lastZPosition = 0;  // Keep track of the last Z position where we generated the road and objects
+let roadThreshold = 10; // Threshold to generate new roads (ahead of the car)
+let objectThreshold = 50; // Threshold to generate new objects (ahead of the car)
+
+let carPosition; // Keep track of the car's position
 
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
@@ -489,6 +497,8 @@ function startAnimation(sceneId, distance) {
       console.log('Removed object:', obj);
     }
   }
+
+  roadThreshold = 10; // Reset the road threshold
 
   // Create the road
   createStraightRoad(7);
@@ -539,20 +549,7 @@ function startAnimation(sceneId, distance) {
     centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
       if (child.isMesh) {
-        child.material = modra; 
-        /*
-        child.material = new THREE.MeshStandardMaterial({
-          color: 0x0077ff, // Blue color
-          metalness: 0.5,  // Makes the surface metallic
-          roughness: 0.5,  // Controls the roughness of the surface
-        });
-        */
-        /*
-        child.material = new THREE.MeshStandardMaterial({
-          map: motoristTecture, // Use the loaded texture
-        });
-        */
-
+        child.material = modra;
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
@@ -587,6 +584,34 @@ function centerAndScaleObject(object, scaleFactor) {
   object.scale.set(scaleFactor, scaleFactor, scaleFactor); // Scale down
 }
 
+// ===== Road Generation Function =====
+function createRoadAhead() {
+  // Create a new road section ahead of the car
+  console.log('Generating new road section...');
+  const road = createStraightRoad(roadLength);
+  road.position.z = lastZPosition - roadThreshold; // Position the new road section in front of the car
+  scene.add(road);
+  roadSections.push(road); // Store the road section for later removal
+
+  // Update the last Z position after creating the road
+  lastZPosition = road.position.z + roadLength;
+
+  // Remove road sections that are too far behind the car
+  removeOldRoadSections();
+}
+
+// ===== Utility Function to Remove Old Road Sections =====
+function removeOldRoadSections() {
+  // Remove road sections that are behind the car
+  roadSections.forEach((road, index) => {
+    if (road.position.z + roadLength < car.position.z) {
+      scene.remove(road); // Remove the road section from the scene
+      roadSections.splice(index, 1); // Remove it from the array
+    }
+  });
+}
+
+
 // ===== Animation Loop =====
 function animate() {
   requestAnimationFrame(animate);
@@ -601,6 +626,13 @@ function animate() {
   if (!isAnimating) {
     renderer.render(scene, camera);
     return;
+  }
+
+  // Check if road generation is needed
+  if (car.position.z < roadThreshold) {
+    roadThreshold -= 35; // Move the threshold backward to generate new road sections
+    console.log('Generating new road sections...');
+    createRoadAhead(); // Generate a new section of the road
   }
 
   // Utility function: Constrain object position within boundaries
@@ -652,7 +684,6 @@ function animate() {
       // Remove object if it falls too far
       if (object.position.y < -20) {
         scene.remove(object); // Remove the object from the scene
-        console.log('Object fell off and was removed:', object);
       }
     }
   }  
@@ -725,13 +756,13 @@ function animate() {
   // Camera behavior: anchor to the car and make it look at the car
   if (car) {
     // Adjust camera position relative to the car
-    if(perspectiveFlag) {
+    if(perspectiveCount % 3 === 0) {
       const offset = new THREE.Vector3(0, 5, 5); // Adjust this vector to set your preferred distance
       camera.position.copy(car.position).add(offset); // Set camera position at fixed offset from the car
 
       //Make the camera look at the car
       camera.lookAt(car.position);
-    } else {  // Normal camera behavior
+    } else if (perspectiveCount % 3 === 1) {  // Normal camera behavior
       const offset = new THREE.Vector3(0, 5, 5); // Adjust for desired camera offset
   
       // Update only the z-axis and maintain the offset
@@ -746,9 +777,10 @@ function animate() {
       controls.minDistance = 2; // Set minimum distance for zooming
       controls.maxDistance = 40; // Set maximum distance for zooming
       camera.lookAt(car.position);
+    } else {
+
     }
   }
-
   // Render the scene
   renderer.render(scene, camera);
 }
