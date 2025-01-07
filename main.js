@@ -163,6 +163,7 @@ function getPositions() {
   return positions;
 }
 
+
 function createTree() {
   const geometry = new THREE.CylinderGeometry(0.5, 1, 5, 8); // Trunk
   const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
