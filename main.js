@@ -162,6 +162,48 @@ function getPositions() {
 
   return positions;
 }
+
+function createTree() {
+  const geometry = new THREE.CylinderGeometry(0.5, 1, 5, 8); // Trunk
+  const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const trunk = new THREE.Mesh(geometry, material);
+
+  const foliageGeometry = new THREE.SphereGeometry(2, 8, 8); // Foliage
+  const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+  const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+
+  foliage.position.y = 4; // Position foliage above the trunk
+  trunk.add(foliage); // Attach foliage to the trunk
+
+  return trunk;
+}
+
+function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
+  for (let i = 0; i < numTrees; i++) {
+    const x = Math.random() * worldSize - worldSize / 2;
+    const z = Math.random() * worldSize - worldSize / 2;
+
+    // Skip positions within the road boundaries
+    if (Math.abs(x) < roadWidth / 2 && Math.abs(z) < roadLength / 2) {
+      i--; // Retry this iteration
+      continue;
+    }
+
+    const tree = createTree();
+    tree.position.set(x, 0, z);
+    tree.castShadow = true; // Allow the tree to cast shadows
+    scene.add(tree);
+  }
+}
+
+// Generate trees
+const worldSize = 100; // Define the size of the world
+const roadWidth = 10;  // Width of the road
+const roadLength = 50; // Length of the road
+const numTrees = 100;  // Number of trees to generate
+
+generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
+
 // send positions to MQTT
 function sendPositions() {
   const positions = getPositions();
@@ -399,13 +441,15 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
   }
 }
 
+let modelsToClear = [];
+
 let carPosition = new THREE.Vector3();
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
   // Clear previous models
   for (let i = scene.children.length - 1; i >= 0; i--) {
     const obj = scene.children[i];
-    if (obj !== camera && !(obj instanceof THREE.GridHelper || obj instanceof THREE.AxesHelper || obj === sky || obj === grassPlane)) { 
+    if ( modelsToClear.includes(obj) ) { 
       scene.remove(obj);
       console.log('Removed object:', obj);
     }
@@ -435,6 +479,7 @@ function startAnimation(sceneId, distance) {
 
     car = object; // Save reference to car
     carPosition = car.position;
+    modelsToClear.push(car); // Add car to the list of models to clear
   });
 
   if (sceneId % 2 === 0) {
@@ -451,6 +496,7 @@ function startAnimation(sceneId, distance) {
     scene.add(object);
 
     cyclist = object; // Save reference to cyclist
+    modelsToClear.push(cyclist); // Add cyclist to the list of models to clear
   });
   } else {
     // Load motorist.obj
@@ -479,6 +525,7 @@ function startAnimation(sceneId, distance) {
     scene.add(object);
 
     motorist = object; // Save reference to motorist
+    modelsToClear.push(motorist); // Add motorist to the list of models to clear
   });
   }
 }
@@ -637,7 +684,7 @@ function animate() {
 
       //Make the camera look at the car
       camera.lookAt(car.position);
-    } else {
+    } else {  // Normal camera behavior
       const offset = new THREE.Vector3(0, 5, 5); // Adjust for desired camera offset
   
       // Update only the z-axis and maintain the offset
