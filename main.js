@@ -34,7 +34,7 @@ const acceleration = 0.0005;
 const cyclistDeceleration = 0.0035;
 const cyclistMaxSpeed = 0.05; 
 
-let perspectiveCount= 0; // Flag to enable/disable perspective view
+let perspectiveCount= 0; // Track perspective view
 
 // materials
 const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
@@ -95,7 +95,6 @@ const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
 controls.minDistance = 5;
-controls.maxDistance = 50;
 
 // ===== Add Helpers for Debugging =====
 //const gridHelper = new THREE.GridHelper(100, 100);
@@ -247,7 +246,6 @@ document.addEventListener('keydown', (event) => {
       break;
     case 'p': // P key toggles perspective view
       perspectiveCount += 1; // Toggle perspective view
-      console.log(`Perspective view is now ${perspectiveFlag ? 'enabled' : 'disabled'}`);
       break;
     case 'm': 
       toggleMenu(); // Call the toggleMenu function when "M" is pressed
@@ -321,48 +319,60 @@ startButton.addEventListener('click', () => {
   startAnimation(selectedScene, distance);
   isAnimating = true; // Enable animation
 });
-
 // ===== Load and Place the Road Sections =====
+function createRoadTile(position, roadMaterial) {
+  const objLoader = new OBJLoader();
+  const roadTile = new THREE.Group();  // Use a group to hold the road section
+
+  objLoader.load('./models/cesta.obj', (object) => {
+    if (!object) {
+      console.error('Failed to load the cesta.obj file.');
+      return;
+    }
+
+    // Center and scale each road section
+    centerAndScaleObject(object, 1); // Adjust the scale factor as needed
+    object.traverse((child) => {
+      if (child.isMesh) {
+        child.material = roadMaterial; // Apply the road material
+      }
+    });
+
+    // Correct rotation to ensure road is flat
+    object.rotation.y = -Math.PI / 2; // Lay flat on the ground
+    object.position.set(0, 0.01, position); // Position along the Z-axis
+
+    // Add the road section to the group
+    roadTile.add(object);
+  });
+
+  return roadTile;
+}
+
+// Outer function: Creates the specified number of road tiles and returns them as an array
 function createStraightRoad(roadLength) {
   const objLoader = new OBJLoader();
-  //const roadMaterial = new THREE.MeshBasicMaterial({ color: 0x808080 }); // Gray material for the road
   const roadTexture = new THREE.TextureLoader().load('./textures/road-texture.jpg');
   roadTexture.wrapS = THREE.RepeatWrapping;
   roadTexture.wrapT = THREE.RepeatWrapping;
-  roadTexture.repeat.set(10, 10);  // Adjust the number of repetitions
+  roadTexture.repeat.set(10, 10);
   const roadMaterial = new THREE.MeshBasicMaterial({ map: roadTexture });
 
+  const roadTiles = [];  // Array to hold individual road tiles
+
   for (let i = -roadLength; i <= roadLength; i++) {
-    objLoader.load('./models/cesta.obj', (object) => {
-      if (!object) {
-        console.error('Failed to load the cesta.obj file.');
-        return;
-      }
-      // Center and scale each road section
-      centerAndScaleObject(object, 1); // Adjust the scale factor as needed
-      object.traverse((child) => {
-        if (child.isMesh) {
-          child.material = roadMaterial; // Apply the road material
-        }
-      });
-
-      // Correct rotation to ensure road is flat
-      object.rotation.y = -Math.PI / 2; // Lay flat on the ground
-      object.position.set(0, 0.01, i * 5); // Position along the Z-axis
-
-      // Add the road section to the scene
-      scene.add(object);
-
-      console.log(`Road section ${i} added at position:`, object.position);
-      modelsToClear.push(object); // Add road section to the list of models to
-    });
+    const roadTile = createRoadTile(i * 5, roadMaterial);  // Create each road tile at the specified position
+    roadTiles.push(roadTile);  // Add the tile to the array
   }
+
+  return roadTiles;  // Return the array containing all road tiles
 }
 
 // Generate trees
 const worldSize = 100; // Define the size of the world
 const roadWidth = 10;  // Width of the road
 const roadLength = 50; // Length of the road
+const roadNum = 10;
 const numTrees = 50;  // Number of trees to generate
 const numBuildings = 10;
 
@@ -482,7 +492,7 @@ let modelsToClear = [];
 let roadSections = []; // Store the road sections for later removal
 
 let lastZPosition = 0;  // Keep track of the last Z position where we generated the road and objects
-let roadThreshold = 10; // Threshold to generate new roads (ahead of the car)
+let roadThreshold = 0; // Threshold to generate new roads (ahead of the car)
 let objectThreshold = 50; // Threshold to generate new objects (ahead of the car)
 
 let carPosition; // Keep track of the car's position
@@ -498,10 +508,10 @@ function startAnimation(sceneId, distance) {
     }
   }
 
-  roadThreshold = 10; // Reset the road threshold
+  roadThreshold = 0; // Reset the road threshold
 
   // Create the road
-  createStraightRoad(7);
+  createInitialRoad();
 
   const objLoader = new OBJLoader();
   const carTexture = new THREE.TextureLoader().load('./textures/car-texture.jpg');
@@ -574,6 +584,30 @@ function startAnimation(sceneId, distance) {
     }
 }
 
+function createInitialRoad() {
+  const startZ = 35; // Starting coordinate for the road
+  const endZ = -40;  // Ending coordinate for the road
+  const roadLength = 10; // Assuming each road section is 10 units long
+
+  let currentZ = startZ; // Initialize current Z position to the starting coordinate
+
+  while (currentZ > endZ) {
+    // Create a new road section
+    const roadSectionsArray = createStraightRoad(roadNum); // Returns an array of road sections
+    roadSectionsArray.forEach((road) => {
+      road.position.z = currentZ; // Set the Z position for the road section
+      scene.add(road); // Add the road section to the scene
+      roadSections.push(road); // Add the road section to the management array
+    });
+
+    // Move to the next position
+    currentZ -= roadLength;
+  }
+
+  // Update lastZPosition to the position of the last created road
+  lastZPosition = currentZ + roadLength;
+}
+
 // ===== Utility Function to Center and Scale Objects =====
 function centerAndScaleObject(object, scaleFactor) {
   const box = new THREE.Box3().setFromObject(object);
@@ -586,29 +620,40 @@ function centerAndScaleObject(object, scaleFactor) {
 
 // ===== Road Generation Function =====
 function createRoadAhead() {
-  // Create a new road section ahead of the car
-  console.log('Generating new road section...');
-  const road = createStraightRoad(roadLength);
-  road.position.z = lastZPosition - roadThreshold; // Position the new road section in front of the car
-  scene.add(road);
-  roadSections.push(road); // Store the road section for later removal
+  // Create new road sections ahead of the car and get the returned array of roads
+  const roads = createStraightRoad(roadNum);
+
+  // For each road section returned, position it and add to the array
+  roads.forEach(road => {
+    road.position.z = lastZPosition + roadThreshold; // Position the new road section in front of the car
+    scene.add(road); // Add the road to the scene
+    roadSections.push(road); // Store the road section in the array
+  });
+  // get size of the road
+  const roadSize = roads.length;
 
   // Update the last Z position after creating the road
-  lastZPosition = road.position.z + roadLength;
+  lastZPosition = roads[roads.length - 1].position.z + roadLength;
 
-  // Remove road sections that are too far behind the car
-  removeOldRoadSections();
+  // Remove old road sections that are too far behind the car
+  removeOldRoadSections(roadSize);
 }
-
 // ===== Utility Function to Remove Old Road Sections =====
-function removeOldRoadSections() {
-  // Remove road sections that are behind the car
-  roadSections.forEach((road, index) => {
-    if (road.position.z + roadLength < car.position.z) {
-      scene.remove(road); // Remove the road section from the scene
-      roadSections.splice(index, 1); // Remove it from the array
+function removeOldRoadSections(numSections = 1) {
+  // Only proceed if there are road sections to remove
+  if (roadSections.length > 0) {
+    // Remove `numSections` of road sections from the start of the array
+    for (let i = 0; i < numSections; i++) {
+      const road = roadSections[0]; // Get the first road section
+      console.log('Removing road section:', road);
+
+      // Remove the road section from the scene
+      scene.remove(road);
+
+      // Remove the road section from the array
+      roadSections.shift(); // Removes the first element from the array
     }
-  });
+  }
 }
 
 
@@ -629,11 +674,14 @@ function animate() {
   }
 
   // Check if road generation is needed
-  if (car.position.z < roadThreshold) {
-    roadThreshold -= 35; // Move the threshold backward to generate new road sections
-    console.log('Generating new road sections...');
-    createRoadAhead(); // Generate a new section of the road
+  function generateScenery(){
+    if (car.position.z < roadThreshold) {
+      roadThreshold -= 35; // Move the threshold backward to generate new road sections
+      console.log('Generating new road sections...');
+      createRoadAhead(); // Generate a new section of the road
+    }
   }
+
 
   // Utility function: Constrain object position within boundaries
   function gridBoundary(object, minZ, maxZ) {
@@ -693,18 +741,23 @@ function animate() {
     case 1: // Scene 1: Motorist and car
     if (motorist && car) {
     // Motorist movement or falling
-    if (motorist.position.z > MAX_BOUNDARY_Z || motorist.position.z < MIN_BOUNDARY_Z) {
-      handleFalling(motorist, motorist.position.z > MAX_BOUNDARY_Z ? MAX_BOUNDARY_Z : MIN_BOUNDARY_Z, motorist.position.z > MAX_BOUNDARY_Z);
-    } else {
-      motorist.position.z -= 0.09;
-    }
+      // Check if road generation is needed
+      generateScenery();
 
-    // Car movement or falling
-    if (car.position.z > MAX_BOUNDARY_Z || car.position.z < MIN_BOUNDARY_Z) {
-      handleFalling(car, car.position.z > MAX_BOUNDARY_Z ? MAX_BOUNDARY_Z : MIN_BOUNDARY_Z, car.position.z > MAX_BOUNDARY_Z);
-    } else {
-      car.position.z -= 0.05;
-    }
+      if (motorist.position.z > MAX_BOUNDARY_Z || motorist.position.z < MIN_BOUNDARY_Z) {
+        //handleFalling(motorist, motorist.position.z > MAX_BOUNDARY_Z ? MAX_BOUNDARY_Z : MIN_BOUNDARY_Z, motorist.position.z > MAX_BOUNDARY_Z);
+        motorist.position.z -= 0.09;
+      } else {
+        motorist.position.z -= 0.09;
+      }
+
+      // Car movement or falling
+      if (car.position.z > MAX_BOUNDARY_Z || car.position.z < MIN_BOUNDARY_Z) {
+        //handleFalling(car, car.position.z > MAX_BOUNDARY_Z ? MAX_BOUNDARY_Z : MIN_BOUNDARY_Z, car.position.z > MAX_BOUNDARY_Z);
+        car.position.z -= 0.05;
+      } else {
+        car.position.z -= 0.05;
+      }
     } else {
     console.log('Motorist or car not found.');
     }
@@ -712,6 +765,9 @@ function animate() {
 
     case 2: // Scene 2: Cyclist and car
       if (cyclist && car) {
+        // Check if road generation is needed
+        generateScenery();
+
         cyclist.position.z -= 0.05;
         car.position.z -= 0.08;
         gridBoundary(cyclist, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
@@ -723,6 +779,9 @@ function animate() {
 
     case 3: // Scene 3: Stop-and-go behavior for motorist and car
       if (motorist && car) {
+        // Check if road generation is needed
+        generateScenery();
+
         handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005); // Motorist accelerates slower
         handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.010); // Car accelerates slower
       } else {
@@ -732,6 +791,9 @@ function animate() {
 
     case 4: // Scene 4: Stop-and-go behavior for cyclist and car
       if (cyclist && car) {
+        // Check if road generation is needed
+        generateScenery();
+
         handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001); // Cyclist accelerates faster
         handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.1000); // Car accelerates slower
       } else {
