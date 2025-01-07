@@ -60,7 +60,7 @@ sky.material.uniforms.sunPosition.value = sunPosition;
 scene.add( sky );
 
 // Add ambient light for overall illumination
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5); // Soft white light
+const ambientLight = new THREE.AmbientLight(0xffffff, 1); // Soft white light
 scene.add(ambientLight);
 
 // Add a directional light to simulate the sun or another strong light source
@@ -163,6 +163,55 @@ function getPositions() {
   return positions;
 }
 
+function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 }) {
+  const buildingGroup = new THREE.Group();
+
+  // Base building
+  const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+  const buildingMaterial = new THREE.MeshStandardMaterial({
+    color: 0x555555, // Gray for the building
+    roughness: 0.8, // A rougher surface
+    metalness: 0.3, // Slight metallic look
+  });
+  const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
+  buildingMesh.position.set(position.x, position.y + height / 2, position.z);
+  buildingGroup.add(buildingMesh);
+
+  // Windows
+  const windowRows = Math.min(Math.floor(height / 4), 20); // Limit rows
+  const windowCols = Math.min(Math.floor(width / 4), 10);  // Limit columns
+  const windowSpacing = 4; // Spacing between windows
+  const windowGeometry = new THREE.PlaneGeometry(1.2, 1.2);
+  const windowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xeeeeee, // Light gray for windows
+    emissive: 0x111111, // Slight glow effect to make windows stand out even without light
+    roughness: 0.1, // Smooth surface
+    metalness: 0.5, // Reflective look
+  });
+
+  for (let row = 0; row < windowRows; row++) {
+    for (let col = 0; col < windowCols; col++) {
+      const xOffset = col * windowSpacing - (windowCols * windowSpacing) / 2 + windowSpacing / 2;
+      const yOffset = row * windowSpacing - (windowRows * windowSpacing) / 2 + windowSpacing / 2;
+
+      // Front face
+      const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+      frontWindow.position.set(xOffset, yOffset, depth / 2 + 0.01);
+      buildingGroup.add(frontWindow);
+
+      // Back face
+      const backWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+      backWindow.position.set(xOffset, yOffset, -depth / 2 - 0.01);
+      backWindow.rotation.y = Math.PI; // Flip to face outward
+      buildingGroup.add(backWindow);
+    }
+  }
+
+  // Add skyscraper to the scene
+  return buildingGroup;
+}
+
+
 
 function createTree() {
   const geometry = new THREE.CylinderGeometry(0.5, 1, 5, 8); // Trunk
@@ -202,8 +251,14 @@ const worldSize = 100; // Define the size of the world
 const roadWidth = 10;  // Width of the road
 const roadLength = 50; // Length of the road
 const numTrees = 50;  // Number of trees to generate
+const numBuildings = 10;
 
-generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
+const activeMap = document.getElementById('map').value;
+console.log("izbrana mapa: " + activeMap);
+
+//generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
+generateBuildings(scene, numBuildings, roadWidth, roadLength);
+
 
 // send positions to MQTT
 function sendPositions() {
@@ -402,43 +457,31 @@ function createStraightRoad(roadLength) {
   }
 }
 
-function createBuilding(width, height, depth, x, z, color = 0x8a8a8a) {
-  const geometry = new THREE.BoxGeometry(width, height, depth);
-  const material = new THREE.MeshStandardMaterial({ color });
-  const building = new THREE.Mesh(geometry, material);
-
-  building.position.set(x, height / 2, z); // Position building (centered on its base)
-  return building;
-}
-
 function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
   const spacing = roadLength / numBuildings;
+  const backwardsOffset = 50;
 
   for (let i = 0; i < numBuildings; i++) {
     const xOffset = roadWidth / 2 + 2; // Offset to place the buildings beside the road
-    const zOffset = -i * spacing; // Space buildings along the road
+    const zOffset = -i * spacing * 2 + backwardsOffset; // Space buildings along the road
 
     // Left side of the road
-    const leftBuilding = createBuilding(
+    const leftSkyscraper = createSkyscraper(
       Math.random() * 2 + 2, // Random width
       Math.random() * 8 + 5, // Random height
       Math.random() * 2 + 2, // Random depth
-      -xOffset,
-      zOffset,
-      0x555555 // Dark gray
+      { x: -xOffset, y: 0, z: zOffset } // Position
     );
-    scene.add(leftBuilding);
+    scene.add(leftSkyscraper);
 
     // Right side of the road
-    const rightBuilding = createBuilding(
+    const rightSkyscraper = createSkyscraper(
       Math.random() * 2 + 2, // Random width
       Math.random() * 8 + 5, // Random height
       Math.random() * 2 + 2, // Random depth
-      xOffset,
-      zOffset,
-      0x777777 // Lighter gray
+      { x: xOffset, y: 0, z: zOffset } // Position
     );
-    scene.add(rightBuilding);
+    scene.add(rightSkyscraper);
   }
 }
 
