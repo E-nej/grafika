@@ -359,6 +359,15 @@ function createStraightRoad(roadLength) {
   }
 }
 
+function createBuilding(width, height, depth, x, z, color = 0x8a8a8a) {
+  const geometry = new THREE.BoxGeometry(width, height, depth);
+  const material = new THREE.MeshStandardMaterial({ color });
+  const building = new THREE.Mesh(geometry, material);
+
+  building.position.set(x, height / 2, z); // Position building (centered on its base)
+  return building;
+}
+
 let carPosition = new THREE.Vector3();
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
