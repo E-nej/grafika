@@ -475,9 +475,6 @@ function animate() {
     if (object.position.z < minZ) object.position.z = minZ;
   }
 
-
-  
-
   // Utility function: Handle stop-and-go behavior
   function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
     if (object.currentSpeed === undefined) object.currentSpeed = 0;
@@ -570,7 +567,15 @@ function animate() {
       //Make the camera look at the car
       camera.lookAt(car.position);
     } else {
-      controls.target.copy(car.position); // Set the OrbitControls target to the car
+      const offset = new THREE.Vector3(0, 0, 5); // Adjust for desired camera offset
+  
+      // Update only the z-axis and maintain the offset
+      camera.position.set(
+      camera.position.x,           // Keep current x-position
+      camera.position.y,           // Keep current y-position
+      car.position.z + offset.z    // Follow car along z-axis
+      );
+      camera.lookAt(car.position);
     }
   }
 
