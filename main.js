@@ -656,7 +656,6 @@ function removeOldRoadSections(numSections = 1) {
   }
 }
 
-
 // ===== Animation Loop =====
 function animate() {
   requestAnimationFrame(animate);
@@ -819,28 +818,24 @@ function animate() {
   if (car) {
     // Adjust camera position relative to the car
     if(perspectiveCount % 3 === 0) {
-      const offset = new THREE.Vector3(0, 5, 5); // Adjust this vector to set your preferred distance
+      controls.minDistance = 2; // Minimum zoom distance
+      controls.maxDistance = 50; // Maximum zoom distance
+    } else if (perspectiveCount % 3 === 1) {  // Normal camera behavior
+
+      controls.target.copy(car.position);
+      
+
+      controls.enableDamping = true; // Smooth movement
+      controls.dampingFactor = 0.1;
+      controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation to top-down views
+      controls.minDistance = 2; // Minimum zoom distance
+      controls.maxDistance = 15; // Maximum zoom distance
+    } else {
+      const offset = new THREE.Vector3(0, 5, 10); // Adjust this vector to set your preferred distance
       camera.position.copy(car.position).add(offset); // Set camera position at fixed offset from the car
 
       //Make the camera look at the car
       camera.lookAt(car.position);
-    } else if (perspectiveCount % 3 === 1) {  // Normal camera behavior
-      const offset = new THREE.Vector3(0, 5, 5); // Adjust for desired camera offset
-  
-      // Update only the z-axis and maintain the offset
-      camera.position.set(
-      camera.position.x,           // Keep current x-position
-      camera.position.y,           // Keep current y-position
-      car.position.z + offset.z    // Follow car along z-axis
-      );
-
-      controls.enableDamping = true; // Enable damping for smooth camera movement
-      controls.dampingFactor = 0.25; // Adjust damping factor as needed
-      controls.minDistance = 2; // Set minimum distance for zooming
-      controls.maxDistance = 40; // Set maximum distance for zooming
-      camera.lookAt(car.position);
-    } else {
-
     }
   }
   // Render the scene
