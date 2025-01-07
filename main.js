@@ -162,105 +162,6 @@ function getPositions() {
 
   return positions;
 }
-
-function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 }) {
-  const buildingGroup = new THREE.Group();
-
-  // Base building
-  const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
-  const buildingMaterial = new THREE.MeshStandardMaterial({
-    color: 0x555555, // Gray for the building
-    roughness: 0.8, // A rougher surface
-    metalness: 0.3, // Slight metallic look
-  });
-  const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
-  buildingMesh.position.set(position.x, position.y + height / 2, position.z);
-  buildingGroup.add(buildingMesh);
-
-  // Windows
-  const windowRows = Math.min(Math.floor(height / 4), 20); // Limit rows
-  const windowCols = Math.min(Math.floor(width / 4), 10);  // Limit columns
-  const windowSpacing = 4; // Spacing between windows
-  const windowGeometry = new THREE.PlaneGeometry(1.2, 1.2);
-  const windowMaterial = new THREE.MeshStandardMaterial({
-    color: 0xeeeeee, // Light gray for windows
-    emissive: 0x111111, // Slight glow effect to make windows stand out even without light
-    roughness: 0.1, // Smooth surface
-    metalness: 0.5, // Reflective look
-  });
-
-  for (let row = 0; row < windowRows; row++) {
-    for (let col = 0; col < windowCols; col++) {
-      const xOffset = col * windowSpacing - (windowCols * windowSpacing) / 2 + windowSpacing / 2;
-      const yOffset = row * windowSpacing - (windowRows * windowSpacing) / 2 + windowSpacing / 2;
-
-      // Front face
-      const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
-      frontWindow.position.set(xOffset, yOffset, depth / 2 + 0.01);
-      buildingGroup.add(frontWindow);
-
-      // Back face
-      const backWindow = new THREE.Mesh(windowGeometry, windowMaterial);
-      backWindow.position.set(xOffset, yOffset, -depth / 2 - 0.01);
-      backWindow.rotation.y = Math.PI; // Flip to face outward
-      buildingGroup.add(backWindow);
-    }
-  }
-
-  // Add skyscraper to the scene
-  return buildingGroup;
-}
-
-
-
-function createTree() {
-  const geometry = new THREE.CylinderGeometry(0.5, 1, 5, 8); // Trunk
-  const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-  const trunk = new THREE.Mesh(geometry, material);
-
-  const foliageGeometry = new THREE.SphereGeometry(2, 8, 8); // Foliage
-  const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-  const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
-
-  foliage.position.y = 4; // Position foliage above the trunk
-  trunk.add(foliage); // Attach foliage to the trunk
-
-  return trunk;
-}
-
-function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
-  for (let i = 0; i < numTrees; i++) {
-    const x = Math.random() * worldSize - worldSize / 2;
-    const z = Math.random() * worldSize - worldSize / 2;
-
-    // Skip positions within the road boundaries
-    if (Math.abs(x) < roadWidth && Math.abs(z) < roadLength) {
-      i--; // Retry this iteration
-      continue;
-    }
-
-    const tree = createTree();
-    tree.position.set(x, 0, z);
-    tree.castShadow = true; // Allow the tree to cast shadows
-    scene.add(tree);
-  }
-}
-
-// Generate trees
-const worldSize = 100; // Define the size of the world
-const roadWidth = 10;  // Width of the road
-const roadLength = 50; // Length of the road
-const numTrees = 50;  // Number of trees to generate
-const numBuildings = 10;
-
-const activeMap = document.getElementById('map').value;
-console.log("izbrana mapa: " + activeMap);
-
-//generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
-generateBuildings(scene, numBuildings, roadWidth, roadLength);
-
-
-// send positions to MQTT
 function sendPositions() {
   const positions = getPositions();
 
@@ -457,6 +358,96 @@ function createStraightRoad(roadLength) {
   }
 }
 
+// Generate trees
+const worldSize = 100; // Define the size of the world
+const roadWidth = 10;  // Width of the road
+const roadLength = 50; // Length of the road
+const numTrees = 50;  // Number of trees to generate
+const numBuildings = 10;
+
+function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 }) {
+  const buildingGroup = new THREE.Group();
+
+  // Base building
+  const buildingGeometry = new THREE.BoxGeometry(width, height, depth);
+  const buildingMaterial = new THREE.MeshStandardMaterial({
+    color: 0x555555, // Gray for the building
+    roughness: 0.8, // A rougher surface
+    metalness: 0.3, // Slight metallic look
+  });
+  const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
+  buildingMesh.position.set(position.x, position.y + height / 2, position.z);
+  buildingGroup.add(buildingMesh);
+
+  // Windows
+  const windowRows = Math.min(Math.floor(height / 4), 20); // Limit rows
+  const windowCols = Math.min(Math.floor(width / 4), 10);  // Limit columns
+  const windowSpacing = 4; // Spacing between windows
+  const windowGeometry = new THREE.PlaneGeometry(1.2, 1.2);
+  const windowMaterial = new THREE.MeshStandardMaterial({
+    color: 0xeeeeee, // Light gray for windows
+    emissive: 0x111111, // Slight glow effect to make windows stand out even without light
+    roughness: 0.1, // Smooth surface
+    metalness: 0.5, // Reflective look
+  });
+
+  for (let row = 0; row < windowRows; row++) {
+    for (let col = 0; col < windowCols; col++) {
+      const xOffset = col * windowSpacing - (windowCols * windowSpacing) / 2 + windowSpacing / 2;
+      const yOffset = row * windowSpacing - (windowRows * windowSpacing) / 2 + windowSpacing / 2;
+
+      // Front face
+      const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+      frontWindow.position.set(xOffset, yOffset, depth / 2 + 0.01);
+      buildingGroup.add(frontWindow);
+
+      // Back face
+      const backWindow = new THREE.Mesh(windowGeometry, windowMaterial);
+      backWindow.position.set(xOffset, yOffset, -depth / 2 - 0.01);
+      backWindow.rotation.y = Math.PI; // Flip to face outward
+      buildingGroup.add(backWindow);
+    }
+  }
+
+  // Add skyscraper to the scene
+  return buildingGroup;
+}
+
+function createTree() {
+  const geometry = new THREE.CylinderGeometry(0.5, 1, 5, 8); // Trunk
+  const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+  const trunk = new THREE.Mesh(geometry, material);
+
+  const foliageGeometry = new THREE.SphereGeometry(2, 8, 8); // Foliage
+  const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
+  const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
+
+  foliage.position.y = 4; // Position foliage above the trunk
+  trunk.add(foliage); // Attach foliage to the trunk
+
+  return trunk;
+}
+
+function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
+  for (let i = 0; i < numTrees; i++) {
+    const x = Math.random() * worldSize - worldSize / 2;
+    const z = Math.random() * worldSize - worldSize / 2;
+
+    // Skip positions within the road boundaries
+    if (Math.abs(x) < roadWidth && Math.abs(z) < roadLength) {
+      i--; // Retry this iteration
+      continue;
+    }
+
+    const tree = createTree();
+    tree.position.set(x, 0, z);
+    tree.castShadow = true; // Allow the tree to cast shadows
+    scene.add(tree);
+
+    modelsToClear.push(tree); // Add tree to the list of trees to clear
+  }
+}
+
 function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
   const spacing = roadLength / numBuildings;
   const backwardsOffset = 50;
@@ -482,6 +473,7 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
       { x: xOffset, y: 0, z: zOffset } // Position
     );
     scene.add(rightSkyscraper);
+    modelsToClear.push(leftSkyscraper, rightSkyscraper); // Add buildings to the list of models to clear
   }
 }
 
@@ -572,6 +564,18 @@ function startAnimation(sceneId, distance) {
     modelsToClear.push(motorist); // Add motorist to the list of models to clear
   });
   }
+
+  const mapsElement = document.getElementById('map');
+  const selectedMap = mapsElement.value;
+
+  switch (selectedMap) {
+    case '1': 
+      generateBuildings(scene, numBuildings, roadWidth, roadLength);
+      break;
+    case '2':
+      generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
+      break;
+    }
 }
 
 // ===== Utility Function to Center and Scale Objects =====
