@@ -368,6 +368,37 @@ function createBuilding(width, height, depth, x, z, color = 0x8a8a8a) {
   return building;
 }
 
+function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
+  const spacing = roadLength / numBuildings;
+
+  for (let i = 0; i < numBuildings; i++) {
+    const xOffset = roadWidth / 2 + 2; // Offset to place the buildings beside the road
+    const zOffset = -i * spacing; // Space buildings along the road
+
+    // Left side of the road
+    const leftBuilding = createBuilding(
+      Math.random() * 2 + 2, // Random width
+      Math.random() * 8 + 5, // Random height
+      Math.random() * 2 + 2, // Random depth
+      -xOffset,
+      zOffset,
+      0x555555 // Dark gray
+    );
+    scene.add(leftBuilding);
+
+    // Right side of the road
+    const rightBuilding = createBuilding(
+      Math.random() * 2 + 2, // Random width
+      Math.random() * 8 + 5, // Random height
+      Math.random() * 2 + 2, // Random depth
+      xOffset,
+      zOffset,
+      0x777777 // Lighter gray
+    );
+    scene.add(rightBuilding);
+  }
+}
+
 let carPosition = new THREE.Vector3();
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
