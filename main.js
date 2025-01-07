@@ -638,7 +638,7 @@ function animate() {
       //Make the camera look at the car
       camera.lookAt(car.position);
     } else {
-      const offset = new THREE.Vector3(0, 0, 5); // Adjust for desired camera offset
+      const offset = new THREE.Vector3(0, 5, 5); // Adjust for desired camera offset
   
       // Update only the z-axis and maintain the offset
       camera.position.set(
@@ -646,6 +646,11 @@ function animate() {
       camera.position.y,           // Keep current y-position
       car.position.z + offset.z    // Follow car along z-axis
       );
+
+      controls.enableDamping = true; // Enable damping for smooth camera movement
+      controls.dampingFactor = 0.25; // Adjust damping factor as needed
+      controls.minDistance = 2; // Set minimum distance for zooming
+      controls.maxDistance = 40; // Set maximum distance for zooming
       camera.lookAt(car.position);
     }
   }
@@ -665,7 +670,6 @@ window.addEventListener('resize', () => {
 // ===== Handle Start Button Click =====
 document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
-  const distance = parseFloat(document.getElementById("distance").value);
 
   activeScene = sceneId;
 });
