@@ -384,7 +384,7 @@ function startAnimation(sceneId, distance) {
     object.traverse((child) => {
       if (child.isMesh) {
         //child.material = whiteMaterial; // Apply white material
-        child.material = new THREE.MeshStandardMaterial({
+        child.material = new THREE.MeshBasicMaterial({
           map: carTexture, // Use the loaded texture
         });
       }
