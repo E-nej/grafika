@@ -24,6 +24,14 @@ const keys = {
   d: false,
 };
 
+
+//vairables for drwaing car tracks
+let carTrackLine; // Line representing the car's track
+let trackPoints = []; // Array to hold track points
+const trackColor = 0xff0000; // Red color for the track
+
+
+
 // Constants for animation
 const stoppingPoint = 0; 
 const carDeceleration = 0.005;
@@ -503,6 +511,21 @@ function clear(){
   }
   
 }
+function initializeCarTrack() {
+  const trackMaterial = new THREE.LineBasicMaterial({
+    color: trackColor,
+    linewidth: 2, // Ensure visibility
+  });
+  const trackGeometry = new THREE.BufferGeometry();
+
+  // Initialize the track line
+  carTrackLine = new THREE.Line(trackGeometry, trackMaterial);
+  scene.add(carTrackLine);
+}
+function resetCarTrack() {
+  trackPoints = [];
+  carTrackLine.geometry.setFromPoints(trackPoints);
+}
 
 let modelsToClear = [];
 let roadSections = []; // Store the road sections for later removal
@@ -512,10 +535,15 @@ let roadThreshold = 0; // Threshold to generate new roads (ahead of the car)
 
 let carPosition; // Keep track of the car's position
 
+initializeCarTrack();
+console.log('Track Line:', carTrackLine);
+console.log('Scene Children:', scene.children);
+
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
   // Clear previous models
   clear();
+  resetCarTrack(); // Reset car track when starting a new animation
 
   roadThreshold = 0; // Reset the road threshold
   lastGrassZPosition = 100;
@@ -550,6 +578,7 @@ function startAnimation(sceneId, distance) {
     carPosition = car.position;
     modelsToClear.push(car); // Add car to the list of models to clear
   });
+  
 
   if (sceneId % 2 === 0) {
     // Load bikered.obj
@@ -689,6 +718,8 @@ function generateGrassPlanes() {
       scene.remove(oldestGrassPlane); // Remove it from the scene
     }
 }
+
+
 
 // ===== Animation Loop =====
 function animate() {
@@ -852,17 +883,14 @@ function animate() {
     cyclist.position.x = (cyclist.position.x + 0.02) % roadWidth;
   }
 
-  // Camera behavior: anchor to the car and make it look at the car
-  if (car) {
+   // Camera behavior: anchor to the car and make it look at the car
+   if (car) {
     // Adjust camera position relative to the car
-    if(perspectiveCount % 3 === 0) {
+    if (perspectiveCount % 3 === 0) {
       controls.minDistance = 2; // Minimum zoom distance
       controls.maxDistance = 50; // Maximum zoom distance
-    } else if (perspectiveCount % 3 === 1) {  // Normal camera behavior
-
+    } else if (perspectiveCount % 3 === 1) { // Normal camera behavior
       controls.target.copy(car.position);
-      
-
       controls.enableDamping = true; // Smooth movement
       controls.dampingFactor = 0.1;
       controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation to top-down views
@@ -871,11 +899,20 @@ function animate() {
     } else {
       const offset = new THREE.Vector3(0, 5, 10); // Adjust this vector to set your preferred distance
       camera.position.copy(car.position).add(offset); // Set camera position at fixed offset from the car
-
-      //Make the camera look at the car
-      camera.lookAt(car.position);
+      camera.lookAt(car.position); // Make the camera look at the car
     }
+
+    // Draw the car track
+    const currentCarPosition = car.position.clone();
+    currentCarPosition.y += 0.01; // Raise the track slightly above the road
+    if (trackPoints.length === 0 || trackPoints[trackPoints.length - 1].distanceTo(currentCarPosition) > 0.5) {
+      trackPoints.push(currentCarPosition.clone());
+    }
+
+    // Update the geometry of the track
+    carTrackLine.geometry.setFromPoints(trackPoints);
   }
+
   // Render the scene
   renderer.render(scene, camera);
 }
