@@ -86,8 +86,6 @@ directionalLight.shadow.camera.far = 50;
 
 scene.add(directionalLight);
 
-
-
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#bg'),
@@ -119,8 +117,50 @@ controls.minDistance = 5;
 
 
 let sideCamera; // To hold the side camera
+let sideFrontCamera;
+let sideBackCamera;
 let sideViewRenderTarget; // (Optional) To hold the render target for off-screen rendering
 let sideCameraHelperCube; // Declare the variable
+
+let cameras = [sideCamera, sideCamera, sideCamera];
+
+function isCameraSeeingObject(camera, object) {
+  // Update the camera's projection matrix
+
+  if (object === undefined) {
+    console.log('Object is undefined');
+    return false;
+  }
+
+  if (camera === undefined) {
+    console.log('Camera is undefined');
+    return false;
+  }
+  camera.updateProjectionMatrix();
+
+  // Update the object's world matrix (just in case)
+  object.updateMatrixWorld(true);
+
+  // Create a Frustum object
+  const frustum = new THREE.Frustum();
+
+  // Get the camera's view-projection matrix
+  const cameraViewProjectionMatrix = new THREE.Matrix4()
+    .multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+
+  // Set the frustum from the camera's view-projection matrix
+  frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
+
+  // Get the object's bounding sphere (or use bounding box if preferred)
+  const boundingSphere = new THREE.Sphere();
+  object.geometry.computeBoundingSphere(); // Ensure the bounding sphere is up-to-date
+  boundingSphere.copy(object.geometry.boundingSphere).applyMatrix4(object.matrixWorld);
+
+  // Check if the object is within the frustum
+  return frustum.intersectsSphere(boundingSphere);
+}
+
+
 
 function initializeSideCamera() {
  // Create the side camera
@@ -145,6 +185,7 @@ function initializeSideCamera() {
  scene.add(sideCameraHelperCube);
  console.log('Cube position:', sideCameraHelperCube.position); // Add this log here
 }
+
 function updateSideCamera() {
   if (car) {
     const carDirection = new THREE.Vector3();
@@ -295,7 +336,7 @@ function sendPositions() {
   }
 }
 
-setInterval(sendPositions, 2000); // Send positions every second
+//setInterval(sendPositions, 2000); // Send positions every second
 
 // ===== Menu Toggle and Start Button =====
 const menu = document.getElementById('menu');
@@ -859,19 +900,16 @@ function generateGrassPlanes() {
     }
 }
 
-
-
 // ===== Animation Loop =====
 function animate() {
   requestAnimationFrame(animate);
 
+  let objectToCheck = null;
   // Update OrbitControls
   controls.update();
-  
   // Update camera movement (if necessary)
   updateCameraMovement();
 
-  updateSideCamera();
   // Early return if not animating
   if (!isAnimating) {
     renderer.render(scene, camera);
@@ -890,7 +928,6 @@ function animate() {
       generateGrassPlanes(); // Generate new grass planes
     }
   }
-
 
   // Utility function: Constrain object position within boundaries
   function gridBoundary(object, minZ, maxZ) {
@@ -924,33 +961,13 @@ function animate() {
     gridBoundary(object, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
   }
 
-  function handleFalling(object, boundary, isMaxBoundary) {
-    if (!object.falling) {
-      // Check if the object is at the boundary
-      if ((isMaxBoundary && object.position.z >= boundary) || (!isMaxBoundary && object.position.z <= boundary)) {
-        object.falling = true; // Mark as falling
-        object.fallCounter = 0; // Initialize fall counter
-      }
-    } else {
-      // Falling animation logic
-      object.fallCounter++;
-      object.rotation.x += 0.1; // Rotate for a tumbling effect
-      object.position.y -= 0.2; // Move downward
-      object.position.z += isMaxBoundary ? 0.1 : -0.1; // Slight z-axis adjustment for realism
-  
-      // Remove object if it falls too far
-      if (object.position.y < -20) {
-        scene.remove(object); // Remove the object from the scene
-      }
-    }
-  }  
-
   // Scene-specific animations
   switch (activeScene) {
     case 1: // Scene 1: Motorist and car
     if (motorist && car) {
     // Motorist movement or falling
       // Check if road generation is needed
+      objectToCheck = motorist;
       generateScenery();
 
       if (motorist.position.z > MAX_BOUNDARY_Z || motorist.position.z < MIN_BOUNDARY_Z) {
@@ -975,6 +992,7 @@ function animate() {
     case 2: // Scene 2: Cyclist and car
       if (cyclist && car) {
         // Check if road generation is needed
+        objectToCheck = cyclist;
         generateScenery();
 
         cyclist.position.z -= 0.05;
@@ -989,6 +1007,7 @@ function animate() {
     case 3: // Scene 3: Stop-and-go behavior for motorist and car
       if (motorist && car) {
         // Check if road generation is needed
+        objectToCheck = motorist;
         generateScenery();
 
         handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005); // Motorist accelerates slower
@@ -1001,6 +1020,7 @@ function animate() {
     case 4: // Scene 4: Stop-and-go behavior for cyclist and car
       if (cyclist && car) {
         // Check if road generation is needed
+        objectToCheck = cyclist;
         generateScenery();
 
         handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001); // Cyclist accelerates faster
@@ -1046,12 +1066,12 @@ function animate() {
        console.log('Backview');
 
             // Get the car's direction
-      const carDirection = new THREE.Vector3();
-      car.getWorldDirection(carDirection); // Get the car's forward direction
+    const carDirection = new THREE.Vector3();
+    car.getWorldDirection(carDirection); // Get the car's forward direction
 
       // Compute the rightward direction relative to the car (opposite of left vector)
-      const carRight = new THREE.Vector3().crossVectors(carDirection, new THREE.Vector3(0, 1, 0)).normalize(); // Get the right vector
-
+    const carRight = new THREE.Vector3().crossVectors(carDirection, new THREE.Vector3(0, 1, 0)).normalize(); // Get the right vector
+    
       // Position the back camera slightly behind the car
       const backCameraPosition = car.position.clone()
         .sub(carDirection.multiplyScalar(0.5)) // to gre desno
@@ -1078,43 +1098,42 @@ function animate() {
       const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
 
       // Position the side camera relative to the car (adjust these offsets as needed)
-      const sideCameraPosition = car.position.clone()
+    const sideCameraPosition = car.position.clone()
         .add(carLeft.multiplyScalar(1)) // 5 units to the left of the car
         .add(new THREE.Vector3(0, 0.5, 0)) // 2 units upward
         .add(carDirection.multiplyScalar(1)); // Move slightly forward (2 units)
       camera.position.copy(sideCameraPosition);
 
-      // Make the side camera look ahead of the car
+    // Make the side camera look ahead of the car
       camera.lookAt(car.position.clone().add(carDirection.multiplyScalar(20))); // Look forward
 
-      // Use the camera for rendering
-      renderer.render(scene, camera);
+        // Use the camera for rendering
+        renderer.render(scene, camera);
     } else if(perspectiveCount % numPerspectiv === 4){
-       // Front camera view (looking in the direction the car is going)
-       console.log('Frontal view');
+      // Front camera view (looking in the direction the car is going)
+        console.log('Frontal view');
 
-        
-         // Get the car's direction
-         const carDirection = new THREE.Vector3();
-         car.getWorldDirection(carDirection); // Get the car's forward direction
-  
-         // Compute the leftward direction relative to the car
-         const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
-  
-         // Position the front camera relative to the car
-         const frontCameraPosition = car.position.clone()
-           //.add(carDirection.multiplyScalar(10)) // 10 units ahead of the car
-           .add(carLeft.multiplyScalar(2)) // 2 units to the left of the car
-           .add(new THREE.Vector3(0, 0.5, 0)); // 1 unit upward to align with the car's height
-         camera.position.copy(frontCameraPosition);
-  
-         // Make the camera look slightly to the left of the car's forward direction
-         camera.lookAt(car.position.clone()
-           .add(carDirection.multiplyScalar(20)) // Look forward
-           .add(carLeft.multiplyScalar(20))); // Look slightly left
-  
-         // Use the camera for rendering
-         renderer.render(scene, camera);
+        // Get the car's direction
+        const carDirection = new THREE.Vector3();
+        car.getWorldDirection(carDirection); // Get the car's forward direction
+
+        // Compute the leftward direction relative to the car
+        const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
+
+        // Position the front camera relative to the car
+        const frontCameraPosition = car.position.clone()
+          //.add(carDirection.multiplyScalar(10)) // 10 units ahead of the car
+          .add(carLeft.multiplyScalar(2)) // 2 units to the left of the car
+          .add(new THREE.Vector3(0, 0.5, 0)); // 1 unit upward to align with the car's height
+        camera.position.copy(frontCameraPosition);
+
+        // Make the camera look slightly to the left of the car's forward direction
+        camera.lookAt(car.position.clone()
+          .add(carDirection.multiplyScalar(20)) // Look forward
+          .add(carLeft.multiplyScalar(20))); // Look slightly left
+
+        // Use the camera for rendering
+        renderer.render(scene, camera);
     }else {
       // Rear camera view or another custom view
       const offset = new THREE.Vector3(0, 5, 10); // Adjust this vector to set your preferred distance
@@ -1130,6 +1149,21 @@ function animate() {
       trackPoints.push(currentCarPosition.clone());
     }
   }
+
+  let selectedCamera = null;
+
+  updateSideCamera();
+
+  if (isCameraSeeingObject(sideCamera, objectToCheck)) {
+    console.log('Side camera sees the object:', objectToCheck);
+  } else {
+    console.log('Side camera does not see the object:', object);
+  }
+
+  //if (selectedCamera) {
+    //console.log('Selected camera:', selectedCamera);
+    //captureScreenshot(selectedCamera);
+  //}
 
   // Render the scene
   renderer.render(scene, camera);
@@ -1155,8 +1189,4 @@ document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
 
   activeScene = sceneId;
-
-  setInterval(() => {
-    captureScreenshot(sideCamera);
-  }, 1000);  // 1000 milliseconds = 1 second
 });
