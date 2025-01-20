@@ -1343,5 +1343,5 @@ document.getElementById("start").addEventListener("click", () => {
 
     captureScreenshot(sideCamera, timestamp);
   }
-  , 500);
+  , 250);
 });
