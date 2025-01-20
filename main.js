@@ -400,18 +400,20 @@ document.addEventListener('keydown', (event) => {
     case 'b': //pogled strankse kamere
       console.log('stranski view');
       perspectiveCount += 1; // Toggle perspective view
-    case 'v'://prikaz displaya
+      break;
+    case 'v': 
     console.log('Toggling display visibility');
     if (!toggleObject) {
       LoadDisplay(); // Load the object if not already loaded
     } else {
       isObjectVisible = !isObjectVisible;
       toggleObject.visible = isObjectVisible; // Toggle visibility
-      console.log(`Display visibility: ${isObjectVisible}`);
+      console.log("Display visibility: ${isObjectVisible}");
     }
     break;
     case 'm': 
       toggleMenu(); // Call the toggleMenu function when "M" is pressed
+      break;
   }
 });
 
@@ -863,6 +865,7 @@ function animate() {
   let objectToCheck = null;
   // Update OrbitControls
   controls.update();
+
   // Update camera movement (if necessary)
   updateCameraMovement();
   updateSideCamera();
