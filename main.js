@@ -99,6 +99,10 @@ directionalLight.shadow.mapSize.width = 2048; // Shadow quality (higher is bette
 directionalLight.shadow.mapSize.height = 2048;
 directionalLight.shadow.camera.near = 0.5;
 directionalLight.shadow.camera.far = 50;
+directionalLight.shadow.camera.left = -100; // Extend to cover the grass plane
+directionalLight.shadow.camera.right = 100;
+directionalLight.shadow.camera.top = 100;
+directionalLight.shadow.camera.bottom = -100;
 
 scene.add(directionalLight);
 
@@ -968,6 +972,7 @@ function removeOldRoadSections(numSections = 1) {
     }
   }
 }
+
 let total = 0;
 function generateGrassPlanes() {
     lastGrassZPosition -= grassPlaneLength;
