@@ -550,6 +550,7 @@ startButton.addEventListener('click', () => {
   startAnimation(selectedScene, distance);
   isAnimating = true; // Enable animation
 });
+
 // ===== Load and Place the Road Sections =====
 function createRoadTile(position, roadMaterial) {
   const objLoader = new OBJLoader();
@@ -567,6 +568,7 @@ function createRoadTile(position, roadMaterial) {
       if (child.isMesh) {
         child.material = roadMaterial; // Apply the road material
         child.receiveShadow = true;
+        child.castShadow = true;
       }
     });
 
@@ -576,6 +578,13 @@ function createRoadTile(position, roadMaterial) {
 
     // Add the road section to the group
     roadTile.add(object);
+  });
+
+  roadTile.traverse((child) => {
+    if (child.isMesh) {
+      child.receiveShadow = true;
+      child.castShadow = true;
+    }
   });
 
   return roadTile;
@@ -865,6 +874,12 @@ function createInitialRoad() {
     const roadSectionsArray = createStraightRoad(roadNum); // Returns an array of road sections
     roadSectionsArray.forEach((road) => {
       road.position.z = currentZ; // Set the Z position for the road section
+      road.traverse((child) => {
+        if (child.isMesh) {
+          child.receiveShadow = true;
+          child.castShadow = true;
+        }
+      });
       scene.add(road); // Add the road section to the scene
       roadSections.push(road); // Add the road section to the management array
     });
@@ -896,6 +911,12 @@ function createRoadAhead() {
   // For each road section returned, position it and add to the array
   roads.forEach(road => {
     road.position.z = lastZPosition + roadThreshold; // Position the new road section in front of the car
+    road.traverse((child) => {
+      if (child.isMesh) {
+        child.receiveShadow = true;
+        child.castShadow = true;
+      }
+    });
     scene.add(road); // Add the road to the scene
     roadSections.push(road); // Store the road section in the array
   });
