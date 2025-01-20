@@ -350,7 +350,11 @@ function LoadDisplay(){
   if (!toggleObject) {
     // Load the object only once
    // Load the object only once
+   const startTime = performance.now();
     nalagalnik.load('./models/infotainment.obj', (object) => {
+    const endTime = performance.now();
+    const loadTime = endTime - startTime; // Calculate the load time in milliseconds
+  //console.log(`cas nalaganja: ${loadTime}`);
     // Adjust the position to the right of the screen
     object.position.set(4, 0, -5); // 5 units to the right, and 5 units in front of the camera
     object.scale.set(10, 10, 10); // Adjust the scale as needed
@@ -365,6 +369,7 @@ function LoadDisplay(){
     toggleObject = object;
     console.log('Object loaded and added to the camera.');
   });
+  
   } else {
     // Toggle visibility of the already-loaded object
     isObjectVisible = !isObjectVisible;
@@ -559,8 +564,11 @@ startButton.addEventListener('click', () => {
 function createRoadTile(position, roadMaterial) {
   const objLoader = new OBJLoader();
   const roadTile = new THREE.Group();  // Use a group to hold the road section
-
+  const startTime = performance.now(); // Record start time
   objLoader.load('./models/cesta.obj', (object) => {
+    const endTime = performance.now(); // Record end time after loading
+        const loadTime = endTime - startTime; // Calculate the load time
+        console.log(`Object cesta loaded in ${loadTime.toFixed(2)} ms`);
     if (!object) {
       console.error('Failed to load the cesta.obj file.');
       return;
@@ -789,7 +797,11 @@ function startAnimation(sceneId, distance) {
   const motoristTexture = new THREE.TextureLoader().load('./textures/test-mesh2.jpg');
 
   // Load avto.obj
+  const startTime = performance.now();
   objLoader.load('./models/avto.obj', (object) => {
+    const endTime = performance.now(); // Record end time after loading
+    const loadTime = endTime - startTime; // Calculate the load time
+    //console.log(`Object loaded in ${loadTime.toFixed(2)} ms`);
     console.log('Car model loaded:', object);
     centerAndScaleObject(object, 0.3); // Scale and center the model
     object.traverse((child) => {
@@ -814,7 +826,11 @@ function startAnimation(sceneId, distance) {
 
   if (sceneId % 2 === 0) {
     // Load bikered.obj
+    const startTime2 = performance.now();
     objLoader.load('./models/bikered.obj', (object) => {
+      const endTime2 = performance.now(); // Record end time after loading
+      const loadTime2 = endTime2 - startTime2; // Calculate the load time
+      //console.log(`Object loaded in ${loadTime2.toFixed(2)} ms`);
     centerAndScaleObject(object, 0.3); // Scale up the cyclist
     object.traverse((child) => {
       if (child.isMesh) {
@@ -831,7 +847,11 @@ function startAnimation(sceneId, distance) {
   });
   } else {
     // Load motorist.obj
+    const startTime3 = performance.now();
     objLoader.load('./models/motorist.obj', (object) => {
+      const endTime3 = performance.now(); // Record end time after loading
+      const loadTime3 = endTime3 - startTime3; // Calculate the load time
+     // console.log(`Object loaded in ${loadTime3.toFixed(2)} ms`);
       console.log('Motorist model loaded:', object);
     centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
