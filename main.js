@@ -5,14 +5,32 @@ import mqtt from 'mqtt';
 import { Sky } from 'three/addons/objects/Sky.js';
 
 const client = mqtt.connect('ws://192.168.0.106:9001', {
-  clientId: 'threejs-client',
-  clean: false,
+  clientId: `threejs-client-${Math.random().toString(16).substr(2, 8)}`,
+  clean: true,
 });
 
-client.on("message", (topic, message) => {
-  // message is Buffer
-  console.log(message.toString());
-  client.end();
+const posTopic = 'threejs/detections'; 
+
+let subscribed = false;
+
+client.on('connect', () => {
+  if (!subscribed) {
+    client.subscribe(posTopic, (err) => {
+      if (err) {
+        console.error(`Failed to subscribe to topic ${posTopic}:`, err);
+      } else {
+        console.log(`Subscribed to topic ${posTopic}`);
+        subscribed = true;
+      }
+    });
+  }
+});
+
+client.on('message', (topic, message) => {
+  if (topic === posTopic) {
+    const positions = JSON.parse(message.toString());
+    console.log('Received positions:', positions);
+  }
 });
 
 const cameraSpeed = 0.2;
@@ -146,22 +164,23 @@ function initializeSideCamera() {
 function updateSideCamera() {
   if (car) {
     const carDirection = new THREE.Vector3();
-    car.getWorldDirection(carDirection); // Get the car's forward direction
-    const carRight = new THREE.Vector3().crossVectors(carDirection, new THREE.Vector3(0, 1, 0)).normalize(); // Get the right vector
-    
-    // Position the side camera relative to the car
+      car.getWorldDirection(carDirection); // Get the car's forward direction
+
+      // Compute the "left" vector for the car (invert the "right" vector)
+      const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
+
+      // Position the side camera relative to the car (adjust these offsets as needed)
     const sideCameraPosition = car.position.clone()
-      .add(carRight.multiplyScalar(5)) // 5 units to the right
-      .add(new THREE.Vector3(0, 2, 0)); // 2 units upward
-    sideCamera.position.copy(sideCameraPosition);
+        .add(carLeft.multiplyScalar(1)) // 5 units to the left of the car
+        .add(new THREE.Vector3(0, 0.5, 0)) // 2 units upward
+        .add(carDirection.multiplyScalar(1)); // Move slightly forward (2 units)
+      sideCamera.position.copy(sideCameraPosition);
 
     // Make the side camera look ahead of the car
-    sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(10)));
+    sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(20))); // Look forward
 
-    // Use the sideCamera for rendering
-    renderer.render(scene, sideCamera);
-
-
+        // Use the camera for rendering
+        renderer.render(scene, sideCamera);
 
     // Position the camera to the side of the car
     //sideCamera.position.copy(car.position);
@@ -200,7 +219,7 @@ function resizeAndSendScreenshot(dataURL) {
                 const resizedDataURL = canvas.toDataURL('image/png');
 
                 // Publish the resized Base64 image to MQTT
-                client.publish(screenshotTopic, resizedDataURL, { qos: 1, retain: false }, (err) => {
+                client.publish(screenshotTopic, dataURL, { qos: 1, retain: false }, (err) => {
                     if (err) {
                         console.error('Failed to send screenshot:', err);
                     } else {
@@ -231,6 +250,7 @@ function addGrassPlane(zPosition = 0) {
   
   const grassMaterial = new THREE.MeshStandardMaterial({
     map: grassTexture,
+    receiveShadow: true,
   });
 
   const grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Create a new grass plane
@@ -708,7 +728,7 @@ function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
     }
 
     const tree = createTree();
-    tree.position.set(x, 0, z);
+    tree.position.set(x, 0.5, z);
     tree.castShadow = true; // Allow the tree to cast shadows
     scene.add(tree);
 
