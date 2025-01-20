@@ -782,6 +782,9 @@ function startAnimation(sceneId, distance) {
   createInitialRoad();
   generateGrassPlanes();
 
+  const lakePosition = { x: 25, y: 0.01, z: -30 };
+  const lake = addIrregularLake(lakePosition);
+
   lastGrassZPosition = 0;
 
   const objLoader = new OBJLoader();
@@ -967,6 +970,33 @@ function generateGrassPlanes() {
       const oldestGrassPlane = grassPlanes.shift(); // Remove the first grass plane from the array
       scene.remove(oldestGrassPlane); // Remove it from the scene
     }
+}
+
+// ===== LAKE =====
+function addIrregularLake(position = { x: 0, y: 0, z: 0 }) {
+  // Create a custom shape for the lake
+  const lakeShape = new THREE.Shape();
+  lakeShape.moveTo(0, 0);
+  lakeShape.quadraticCurveTo(7, 7, 14, 5); // Curve to the right
+  lakeShape.bezierCurveTo(20, -10, 15, -15, 8, -11); // Complex curve
+  lakeShape.quadraticCurveTo(0, -7, 0, 0); // Close the shape
+
+  // Extrude the shape to create a 2D plane
+  const lakeGeometry = new THREE.ShapeGeometry(lakeShape);
+  const lakeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1E90FF,
+    roughness: 0.5,  
+    metalness: 0.5,  
+    transparent: true,
+  });
+
+  const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
+  lake.rotation.x = -Math.PI / 2; // Lay flat
+  lake.position.set(position.x, position.y, position.z); // Position the lake
+  lake.receiveShadow = true; // Enable shadows on the lake
+
+  scene.add(lake);
+  return lake;
 }
 
 // ===== Animation Loop =====
