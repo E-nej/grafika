@@ -46,7 +46,7 @@ const cyclistDeceleration = 0.0035;
 const cyclistMaxSpeed = 0.05; 
 
 let perspectiveCount= 0; // Track perspective view
-let numPerspectiv = 4;
+let numPerspectiv = 5;
 
 // materials
 const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
@@ -999,6 +999,32 @@ function animate() {
 
         // Make the side camera look ahead of the car
         camera.lookAt(car.position.clone().add(carDirection.multiplyScalar(20))); // Look forward
+
+        // Use the camera for rendering
+        renderer.render(scene, camera);
+    } else if(perspectiveCount % numPerspectiv === 3){
+      // Front camera view (looking in the direction the car is going)
+        console.log('Frontal view');
+
+        
+        // Get the car's direction
+        const carDirection = new THREE.Vector3();
+        car.getWorldDirection(carDirection); // Get the car's forward direction
+
+        // Compute the leftward direction relative to the car
+        const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
+
+        // Position the front camera relative to the car
+        const frontCameraPosition = car.position.clone()
+          //.add(carDirection.multiplyScalar(10)) // 10 units ahead of the car
+          .add(carLeft.multiplyScalar(2)) // 2 units to the left of the car
+          .add(new THREE.Vector3(0, 0.5, 0)); // 1 unit upward to align with the car's height
+        camera.position.copy(frontCameraPosition);
+
+        // Make the camera look slightly to the left of the car's forward direction
+        camera.lookAt(car.position.clone()
+          .add(carDirection.multiplyScalar(20)) // Look forward
+          .add(carLeft.multiplyScalar(20))); // Look slightly left
 
         // Use the camera for rendering
         renderer.render(scene, camera);
