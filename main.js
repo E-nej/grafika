@@ -117,49 +117,8 @@ controls.minDistance = 5;
 
 
 let sideCamera; // To hold the side camera
-let sideFrontCamera;
-let sideBackCamera;
 let sideViewRenderTarget; // (Optional) To hold the render target for off-screen rendering
 let sideCameraHelperCube; // Declare the variable
-
-let cameras = [sideCamera, sideCamera, sideCamera];
-
-function isCameraSeeingObject(camera, object) {
-  // Update the camera's projection matrix
-
-  if (object === undefined) {
-    console.log('Object is undefined');
-    return false;
-  }
-
-  if (camera === undefined) {
-    console.log('Camera is undefined');
-    return false;
-  }
-  camera.updateProjectionMatrix();
-
-  // Update the object's world matrix (just in case)
-  object.updateMatrixWorld(true);
-
-  // Create a Frustum object
-  const frustum = new THREE.Frustum();
-
-  // Get the camera's view-projection matrix
-  const cameraViewProjectionMatrix = new THREE.Matrix4()
-    .multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
-
-  // Set the frustum from the camera's view-projection matrix
-  frustum.setFromProjectionMatrix(cameraViewProjectionMatrix);
-
-  // Get the object's bounding sphere (or use bounding box if preferred)
-  const boundingSphere = new THREE.Sphere();
-  object.geometry.computeBoundingSphere(); // Ensure the bounding sphere is up-to-date
-  boundingSphere.copy(object.geometry.boundingSphere).applyMatrix4(object.matrixWorld);
-
-  // Check if the object is within the frustum
-  return frustum.intersectsSphere(boundingSphere);
-}
-
 
 
 function initializeSideCamera() {
@@ -176,8 +135,6 @@ function initializeSideCamera() {
  sideCameraHelperCube = sideCameraHelperCube = new THREE.Mesh(
   new THREE.BoxGeometry(2, 2, 2), // Larger size
   new THREE.MeshBasicMaterial({ color: 0x00ff00 })
-
-  
 );
 
  // Match cube position with the side camera
@@ -391,7 +348,7 @@ function LoadDisplay(){
   if (!toggleObject) {
     // Load the object only once
    // Load the object only once
-   nalagalnik.load('./models/infotainment.obj', (object) => {
+    nalagalnik.load('./models/infotainment.obj', (object) => {
     // Adjust the position to the right of the screen
     object.position.set(4, 0, -5); // 5 units to the right, and 5 units in front of the camera
     object.scale.set(10, 10, 10); // Adjust the scale as needed
@@ -413,9 +370,6 @@ function LoadDisplay(){
     console.log(`Object visibility toggled: ${isObjectVisible}`);
   }
 }
-
-
-
 
 // Add event listeners for key presses
 document.addEventListener('keydown', (event) => {
@@ -447,18 +401,19 @@ document.addEventListener('keydown', (event) => {
       console.log('stranski view');
       perspectiveCount += 1; // Toggle perspective view
       break;
-    case 'v'://prikaz displaya
+    case 'v': 
     console.log('Toggling display visibility');
     if (!toggleObject) {
       LoadDisplay(); // Load the object if not already loaded
     } else {
       isObjectVisible = !isObjectVisible;
       toggleObject.visible = isObjectVisible; // Toggle visibility
-      console.log(`Display visibility: ${isObjectVisible}`);
+      console.log("Display visibility: ${isObjectVisible}");
     }
     break;
     case 'm': 
       toggleMenu(); // Call the toggleMenu function when "M" is pressed
+      break;
   }
 });
 
@@ -910,8 +865,10 @@ function animate() {
   let objectToCheck = null;
   // Update OrbitControls
   controls.update();
+
   // Update camera movement (if necessary)
   updateCameraMovement();
+  updateSideCamera();
 
   // Early return if not animating
   if (!isAnimating) {
@@ -1152,22 +1109,6 @@ function animate() {
       trackPoints.push(currentCarPosition.clone());
     }
   }
-
-  let selectedCamera = null;
-
-  updateSideCamera();
-
-  if (isCameraSeeingObject(sideCamera, objectToCheck)) {
-    console.log('Side camera sees the object:', objectToCheck);
-  } else {
-    console.log('Side camera does not see the object:', object);
-  }
-
-  //if (selectedCamera) {
-    //console.log('Selected camera:', selectedCamera);
-    //captureScreenshot(selectedCamera);
-  //}
-
   // Render the scene
   renderer.render(scene, camera);
 
@@ -1192,4 +1133,9 @@ document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
 
   activeScene = sceneId;
+
+  setInterval(() => {
+    captureScreenshot(sideCamera);
+  }
+  , 500);
 });
