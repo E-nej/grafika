@@ -4,7 +4,10 @@ import { OrbitControls } from './node_modules/three/examples/jsm/controls/OrbitC
 import mqtt from 'mqtt';
 import { Sky } from 'three/addons/objects/Sky.js';
 
-const client = mqtt.connect("ws://192.168.0.106:9001");
+const client = mqtt.connect('ws://192.168.0.106:9001', {
+  clientId: 'threejs-client',
+  clean: false,
+});
 
 client.on("message", (topic, message) => {
   // message is Buffer
@@ -150,13 +153,54 @@ function updateSideCamera() {
 
     // Update the cube position to match the side camera
     sideCameraHelperCube.position.copy(sideCamera.position);
-    console.log('Updated Cube position:', sideCameraHelperCube.position);
+    //console.log('Updated Cube position:', sideCameraHelperCube.position);
   }
 }
 
-
-
 initializeSideCamera();
+
+const screenshotTopic = 'threejs/screenshot';
+
+
+function resizeAndSendScreenshot(dataURL) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  const desiredWidth = 800;
+  const desiredHeight = 600;
+
+  const img = new Image();
+  img.src = dataURL;
+
+  img.onload = function() {
+                // Set canvas size to desired resolution
+                canvas.width = desiredWidth;
+                canvas.height = desiredHeight;
+
+                // Draw the resized image onto the canvas
+                ctx.drawImage(img, 0, 0, desiredWidth, desiredHeight);
+
+                // Convert the resized canvas to Base64 (smaller image)
+                const resizedDataURL = canvas.toDataURL('image/png');
+
+                // Publish the resized Base64 image to MQTT
+                client.publish(screenshotTopic, resizedDataURL, { qos: 1, retain: false }, (err) => {
+                    if (err) {
+                        console.error('Failed to send screenshot:', err);
+                    } else {
+                        console.log('Resized screenshot sent successfully');
+                    }
+                });
+            };
+}
+
+function captureScreenshot(camera) {
+  renderer.render(scene, camera); // Render the scene from the specified camera
+  const dataURL = renderer.domElement.toDataURL("image/bmp");
+
+  resizeAndSendScreenshot(dataURL);
+}
+
 
 let grassPlanes = [];
 
@@ -227,7 +271,7 @@ function sendPositions() {
       if (err) {
         console.error("Failed to send positions:", err);
       } else {
-        //console.log("Positions sent:", message);
+        console.log("Positions sent:", message);
       }
     });
   }
@@ -561,21 +605,6 @@ function clear(){
   }
   
 }
-function initializeCarTrack() {
-  const trackMaterial = new THREE.LineBasicMaterial({
-    color: trackColor,
-    linewidth: 2, // Ensure visibility
-  });
-  const trackGeometry = new THREE.BufferGeometry();
-
-  // Initialize the track line
-  carTrackLine = new THREE.Line(trackGeometry, trackMaterial);
-  scene.add(carTrackLine);
-}
-function resetCarTrack() {
-  trackPoints = [];
-  carTrackLine.geometry.setFromPoints(trackPoints);
-}
 
 let modelsToClear = [];
 let roadSections = []; // Store the road sections for later removal
@@ -585,16 +614,10 @@ let roadThreshold = 0; // Threshold to generate new roads (ahead of the car)
 
 let carPosition; // Keep track of the car's position
 
-initializeCarTrack();
-console.log('Track Line:', carTrackLine);
-console.log('Scene Children:', scene.children);
-
 // ===== Handle Animation Logic =====
 function startAnimation(sceneId, distance) {
   // Clear previous models
-  clear();
-  resetCarTrack(); // Reset car track when starting a new animation
-
+  clear(); 
   roadThreshold = 0; // Reset the road threshold
   lastGrassZPosition = 100;
 
@@ -989,9 +1012,6 @@ function animate() {
     if (trackPoints.length === 0 || trackPoints[trackPoints.length - 1].distanceTo(currentCarPosition) > 0.5) {
       trackPoints.push(currentCarPosition.clone());
     }
-  
-    // Update the geometry of the track
-    carTrackLine.geometry.setFromPoints(trackPoints);
   }
 
   // Render the scene
@@ -1018,4 +1038,8 @@ document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
 
   activeScene = sceneId;
+
+  setInterval(() => {
+    captureScreenshot(sideCamera);
+  }, 1000);  // 1000 milliseconds = 1 second
 });
