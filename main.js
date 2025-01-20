@@ -33,8 +33,6 @@ let carTrackLine; // Line representing the car's track
 let trackPoints = []; // Array to hold track points
 const trackColor = 0xff0000; // Red color for the track
 
-
-
 // Constants for animation
 const stoppingPoint = 0; 
 const carDeceleration = 0.005;
@@ -49,9 +47,9 @@ let perspectiveCount= 0; // Track perspective view
 let numPerspectiv = 6;
 
 // materials
-const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
-const redMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-const modra = new THREE.MeshBasicMaterial({ color: 0x0000FF });
+const whiteMaterial = new THREE.MeshStandardMaterial({ color: 0x0000FF });
+const redMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
+const modra = new THREE.MeshStandardMaterial({ color: 0x0000FF });
 
 // Track right mouse button state
 let isRightMouseDown = false;
@@ -69,7 +67,7 @@ const sunPosition = new THREE.Vector3().setFromSphericalCoords( 1, phi/2, theta/
 
 sky.material.uniforms.sunPosition.value = sunPosition;
 
-scene.add( sky );
+scene.add(sky);
 
 // Add ambient light for overall illumination
 const ambientLight = new THREE.AmbientLight(0xffffff, 1); // Soft white light
@@ -134,7 +132,7 @@ function initializeSideCamera() {
 
  sideCameraHelperCube = sideCameraHelperCube = new THREE.Mesh(
   new THREE.BoxGeometry(2, 2, 2), // Larger size
-  new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+  new THREE.MeshStandardMaterial({ color: 0x00ff00 })
 );
 
  // Match cube position with the side camera
@@ -231,7 +229,7 @@ function addGrassPlane(zPosition = 0) {
   grassTexture.wrapT = THREE.RepeatWrapping;
   grassTexture.repeat.set(10, 10); // Adjust this to repeat the texture
   
-  const grassMaterial = new THREE.MeshBasicMaterial({
+  const grassMaterial = new THREE.MeshStandardMaterial({
     map: grassTexture,
   });
 
@@ -500,6 +498,7 @@ function createRoadTile(position, roadMaterial) {
     object.traverse((child) => {
       if (child.isMesh) {
         child.material = roadMaterial; // Apply the road material
+        child.receiveShadow = true;
       }
     });
 
@@ -521,7 +520,11 @@ function createStraightRoad(roadLength) {
   roadTexture.wrapS = THREE.RepeatWrapping;
   roadTexture.wrapT = THREE.RepeatWrapping;
   roadTexture.repeat.set(10, 10);
-  const roadMaterial = new THREE.MeshBasicMaterial({ map: roadTexture });
+  const roadMaterial = new THREE.MeshStandardMaterial({
+    map: roadTexture,
+    roughness: 0.9, // Add some roughness for a realistic road
+    metalness: 0,   // Non-metallic surface
+  });
 
   const roadTiles = [];  // Array to hold individual road tiles
 
@@ -557,6 +560,8 @@ function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 })
   });
   const buildingMesh = new THREE.Mesh(buildingGeometry, buildingMaterial);
   buildingMesh.position.set(position.x, position.y + height / 2, position.z);
+  buildingMesh.castShadow = true; // Enable shadow casting for the building
+  buildingMesh.receiveShadow = true;
   buildingGroup.add(buildingMesh);
 
   // Windows
@@ -565,8 +570,8 @@ function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 })
   const windowSpacing = 4; // Spacing between windows
   const windowGeometry = new THREE.PlaneGeometry(1.2, 1.2);
   const windowMaterial = new THREE.MeshStandardMaterial({
-    color: 0xeeeeee, // Light gray for windows
-    emissive: 0x111111, // Slight glow effect to make windows stand out even without light
+    color: 0xADD8E6, // Light gray for windows
+    emissive: 0x1E90FF, // Slight glow effect to make windows stand out even without light
     roughness: 0.1, // Smooth surface
     metalness: 0.5, // Reflective look
   });
@@ -579,12 +584,14 @@ function createSkyscraper(width, height, depth, position = { x: 0, y: 0, z: 0 })
       // Front face
       const frontWindow = new THREE.Mesh(windowGeometry, windowMaterial);
       frontWindow.position.set(xOffset, yOffset, depth / 2 + 0.01);
+      frontWindow.receiveShadow = true;
       buildingGroup.add(frontWindow);
 
       // Back face
       const backWindow = new THREE.Mesh(windowGeometry, windowMaterial);
       backWindow.position.set(xOffset, yOffset, -depth / 2 - 0.01);
       backWindow.rotation.y = Math.PI; // Flip to face outward
+      backWindow.receiveShadow = true;
       buildingGroup.add(backWindow);
     }
   }
@@ -597,12 +604,16 @@ function createTree() {
   const geometry = new THREE.CylinderGeometry(0.5, 1, 5, 8); // Trunk
   const material = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
   const trunk = new THREE.Mesh(geometry, material);
+  trunk.castShadow = true; // Enable shadow casting for the trunk
+  trunk.receiveShadow = true;
 
   const foliageGeometry = new THREE.SphereGeometry(2, 8, 8); // Foliage
   const foliageMaterial = new THREE.MeshStandardMaterial({ color: 0x228B22 });
   const foliage = new THREE.Mesh(foliageGeometry, foliageMaterial);
 
   foliage.position.y = 4; // Position foliage above the trunk
+  foliage.castShadow = true; // Enable shadow casting for the foliage
+  foliage.receiveShadow = true;
   trunk.add(foliage); // Attach foliage to the trunk
 
   return trunk;
@@ -643,6 +654,7 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
       Math.random() * 2 + 2, // Random depth
       { x: -xOffset, y: 0, z: zOffset } // Position
     );
+    leftSkyscraper.castShadow = true;
     scene.add(leftSkyscraper);
 
     // Right side of the road
@@ -652,6 +664,7 @@ function generateBuildings(scene, numBuildings, roadWidth, roadLength) {
       Math.random() * 2 + 2, // Random depth
       { x: xOffset, y: 0, z: zOffset } // Position
     );
+    rightSkyscraper.castShadow = true;
     scene.add(rightSkyscraper);
     modelsToClear.push(leftSkyscraper, rightSkyscraper); // Add buildings to the list of models to clear
   }
@@ -701,9 +714,10 @@ function startAnimation(sceneId, distance) {
     object.traverse((child) => {
       if (child.isMesh) {
         //child.material = whiteMaterial; // Apply white material
-        child.material = new THREE.MeshBasicMaterial({
+        child.material = new THREE.MeshStandardMaterial({
           map: carTexture, // Use the loaded texture
         });
+        child.castShadow = true; // Allow the car to cast shadows
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
@@ -723,7 +737,8 @@ function startAnimation(sceneId, distance) {
     centerAndScaleObject(object, 0.3); // Scale up the cyclist
     object.traverse((child) => {
       if (child.isMesh) {
-        child.material = redMaterial; 
+        child.material = redMaterial;
+        child.castShadow = true;
       }
     });
     object.rotation.y = Math.PI / 1000; // Rotate to align with road
@@ -741,6 +756,7 @@ function startAnimation(sceneId, distance) {
     object.traverse((child) => {
       if (child.isMesh) {
         child.material = modra;
+        child.castShadow = true;
       }
     });
     object.rotation.y = Math.PI / 2; // Rotate to align with road
@@ -826,6 +842,7 @@ function createRoadAhead() {
   // Remove old road sections that are too far behind the car
   removeOldRoadSections(roadSize);
 }
+
 // ===== Utility Function to Remove Old Road Sections =====
 function removeOldRoadSections(numSections = 1) {
   // Only proceed if there are road sections to remove
@@ -881,7 +898,7 @@ function animate() {
     if (car.position.z < roadThreshold) {
       roadThreshold -= 35; // Move the threshold backward to generate new road sections
       console.log('Generating new road sections...');
-      createRoadAhead(); // Generate a new section of the road
+      //createRoadAhead(); // Generate a new section of the road
     }
     if (car.position.z < grassPlaneThreshold) {
       grassPlaneThreshold -= 100; // Move the threshold backward to generate new grass planes
