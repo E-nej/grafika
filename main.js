@@ -82,6 +82,8 @@ directionalLight.shadow.camera.far = 50;
 
 scene.add(directionalLight);
 
+
+
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 const renderer = new THREE.WebGLRenderer({
   canvas: document.querySelector('#bg'),
@@ -110,6 +112,51 @@ controls.minDistance = 5;
 
 //const axesHelper = new THREE.AxesHelper(5);
 //scene.add(axesHelper);
+
+
+let sideCamera; // To hold the side camera
+let sideViewRenderTarget; // (Optional) To hold the render target for off-screen rendering
+let sideCameraHelperCube; // Declare the variable
+
+function initializeSideCamera() {
+ // Create the side camera
+ sideCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
+ sideCamera.position.set(20, 0, 0); // Set side view position
+ sideCamera.lookAt(0, 0, 0); // Look at the scene center
+
+ const sideViewSize = 512; // Render target size
+ sideViewRenderTarget = new THREE.WebGLRenderTarget(sideViewSize, sideViewSize);
+
+ // Add a cube to represent the side camera
+
+ sideCameraHelperCube = sideCameraHelperCube = new THREE.Mesh(
+  new THREE.BoxGeometry(2, 2, 2), // Larger size
+  new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+);
+
+ // Match cube position with the side camera
+ sideCameraHelperCube.position.copy(sideCamera.position);
+
+ // Add the cube to the scene
+ scene.add(sideCameraHelperCube);
+ console.log('Cube position:', sideCameraHelperCube.position); // Add this log here
+}
+function updateSideCamera() {
+  if (car) {
+    // Position the camera to the side of the car
+    sideCamera.position.copy(car.position);
+    sideCamera.position.x += 20; // Move it to the right of the car
+    sideCamera.lookAt(car.position); // Ensure it looks at the car
+
+    // Update the cube position to match the side camera
+    sideCameraHelperCube.position.copy(sideCamera.position);
+    console.log('Updated Cube position:', sideCameraHelperCube.position);
+  }
+}
+
+
+
+initializeSideCamera();
 
 let grassPlanes = [];
 
@@ -256,6 +303,9 @@ document.addEventListener('keydown', (event) => {
     case 'p': // P key toggles perspective view
       perspectiveCount += 1; // Toggle perspective view
       break;
+    case 'b': //pogled strankse kamere
+      console.log('stranski view');
+      perspectiveCount += 1; // Toggle perspective view
     case 'm': 
       toggleMenu(); // Call the toggleMenu function when "M" is pressed
   }
@@ -561,6 +611,7 @@ function startAnimation(sceneId, distance) {
 
   // Load avto.obj
   objLoader.load('./models/avto.obj', (object) => {
+    console.log('Car model loaded:', object);
     centerAndScaleObject(object, 0.3); // Scale and center the model
     object.traverse((child) => {
       if (child.isMesh) {
@@ -576,7 +627,8 @@ function startAnimation(sceneId, distance) {
 
     car = object; // Save reference to car
     carPosition = car.position;
-    modelsToClear.push(car); // Add car to the list of models to clear
+    //modelsToClear.push(car); // Add car to the list of models to clear
+    console.log('Car assigned:', car);
   });
   
 
@@ -599,6 +651,7 @@ function startAnimation(sceneId, distance) {
   } else {
     // Load motorist.obj
     objLoader.load('./models/motorist.obj', (object) => {
+      console.log('Motorist model loaded:', object);
     centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
       if (child.isMesh) {
@@ -610,7 +663,8 @@ function startAnimation(sceneId, distance) {
     scene.add(object);
 
     motorist = object; // Save reference to motorist
-    modelsToClear.push(motorist); // Add motorist to the list of models to clear
+    //modelsToClear.push(motorist); // Add motorist to the list of models to clear
+    console.log('Motorist assigned:', motorist);
   });
   }
 
@@ -731,6 +785,7 @@ function animate() {
   // Update camera movement (if necessary)
   updateCameraMovement();
 
+  updateSideCamera();
   // Early return if not animating
   if (!isAnimating) {
     renderer.render(scene, camera);
@@ -886,35 +941,68 @@ function animate() {
    // Camera behavior: anchor to the car and make it look at the car
    if (car) {
     // Adjust camera position relative to the car
-    if (perspectiveCount % 3 === 0) {
+    if (perspectiveCount % 4 === 0) {
+      // Default OrbitControls behavior
       controls.minDistance = 2; // Minimum zoom distance
       controls.maxDistance = 50; // Maximum zoom distance
-    } else if (perspectiveCount % 3 === 1) { // Normal camera behavior
+      renderer.render(scene, camera); // Use the main camera for rendering
+    } else if (perspectiveCount % 4 === 1) {
+      // Normal camera behavior
       controls.target.copy(car.position);
       controls.enableDamping = true; // Smooth movement
       controls.dampingFactor = 0.1;
       controls.maxPolarAngle = Math.PI / 2; // Limit vertical rotation to top-down views
       controls.minDistance = 2; // Minimum zoom distance
       controls.maxDistance = 15; // Maximum zoom distance
+      renderer.render(scene, camera); // Use the main camera for rendering
+    } else if (perspectiveCount % 4 === 2) {
+      // Side camera view (looking out of the car's window)
+    console.log('Side camera view');
+    
+    // Offset to the side of the car (right side, relative to car's orientation)
+    const carDirection = new THREE.Vector3();
+    car.getWorldDirection(carDirection); // Get the car's forward direction
+    const carRight = new THREE.Vector3().crossVectors(carDirection, new THREE.Vector3(0, 1, 0)).normalize(); // Get the right vector
+    
+    // Position the side camera relative to the car
+    const sideCameraPosition = car.position.clone()
+      .add(carRight.multiplyScalar(5)) // 5 units to the right
+      .add(new THREE.Vector3(0, 2, 0)); // 2 units upward
+    sideCamera.position.copy(sideCameraPosition);
+
+    // Make the side camera look ahead of the car
+    sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(10)));
+
+    // Use the sideCamera for rendering
+    renderer.render(scene, sideCamera);
     } else {
+      // Rear camera view or another custom view
       const offset = new THREE.Vector3(0, 5, 10); // Adjust this vector to set your preferred distance
       camera.position.copy(car.position).add(offset); // Set camera position at fixed offset from the car
       camera.lookAt(car.position); // Make the camera look at the car
+      renderer.render(scene, camera); // Use the main camera for rendering
     }
-
+  
     // Draw the car track
     const currentCarPosition = car.position.clone();
     currentCarPosition.y += 0.01; // Raise the track slightly above the road
     if (trackPoints.length === 0 || trackPoints[trackPoints.length - 1].distanceTo(currentCarPosition) > 0.5) {
       trackPoints.push(currentCarPosition.clone());
     }
-
+  
     // Update the geometry of the track
     carTrackLine.geometry.setFromPoints(trackPoints);
   }
 
   // Render the scene
   renderer.render(scene, camera);
+
+  if (sideViewRenderTarget) {
+    renderer.setRenderTarget(sideViewRenderTarget);
+    renderer.render(scene, sideCamera);
+    renderer.setRenderTarget(null); // Reset back to main renderer
+  }
+
 }
 animate();
 
