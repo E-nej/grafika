@@ -982,7 +982,7 @@ function animate() {
    // Camera behavior: anchor to the car and make it look at the car
    if (car) {
     // Adjust camera position relative to the car
-    if (perspectiveCount % 4 === 0) {
+    if (perspectiveCount % numPerspectiv === 0) {
       // Default OrbitControls behavior
       controls.minDistance = 2; // Minimum zoom distance
       controls.maxDistance = 50; // Maximum zoom distance
@@ -1049,27 +1049,27 @@ function animate() {
        console.log('Frontal view');
 
         
-       // Get the car's direction
-       const carDirection = new THREE.Vector3();
-       car.getWorldDirection(carDirection); // Get the car's forward direction
-
-       // Compute the leftward direction relative to the car
-       const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
-
-       // Position the front camera relative to the car
-       const frontCameraPosition = car.position.clone()
-         //.add(carDirection.multiplyScalar(10)) // 10 units ahead of the car
-         .add(carLeft.multiplyScalar(2)) // 2 units to the left of the car
-         .add(new THREE.Vector3(0, 0.5, 0)); // 1 unit upward to align with the car's height
-       camera.position.copy(frontCameraPosition);
-
-       // Make the camera look slightly to the left of the car's forward direction
-       camera.lookAt(car.position.clone()
-         .add(carDirection.multiplyScalar(20)) // Look forward
-         .add(carLeft.multiplyScalar(20))); // Look slightly left
-
-       // Use the camera for rendering
-       renderer.render(scene, camera);
+         // Get the car's direction
+         const carDirection = new THREE.Vector3();
+         car.getWorldDirection(carDirection); // Get the car's forward direction
+  
+         // Compute the leftward direction relative to the car
+         const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
+  
+         // Position the front camera relative to the car
+         const frontCameraPosition = car.position.clone()
+           //.add(carDirection.multiplyScalar(10)) // 10 units ahead of the car
+           .add(carLeft.multiplyScalar(2)) // 2 units to the left of the car
+           .add(new THREE.Vector3(0, 0.5, 0)); // 1 unit upward to align with the car's height
+         camera.position.copy(frontCameraPosition);
+  
+         // Make the camera look slightly to the left of the car's forward direction
+         camera.lookAt(car.position.clone()
+           .add(carDirection.multiplyScalar(20)) // Look forward
+           .add(carLeft.multiplyScalar(20))); // Look slightly left
+  
+         // Use the camera for rendering
+         renderer.render(scene, camera);
     }else {
       // Rear camera view or another custom view
       const offset = new THREE.Vector3(0, 5, 10); // Adjust this vector to set your preferred distance
