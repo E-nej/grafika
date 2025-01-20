@@ -339,6 +339,41 @@ function toggleMenu() {
   }
 }
 
+let toggleObject;
+let isObjectVisible = true;
+const nalagalnik = new OBJLoader(); 
+
+function LoadDisplay(){
+  
+  if (!toggleObject) {
+    // Load the object only once
+   // Load the object only once
+   nalagalnik.load('./models/infotainment.obj', (object) => {
+    // Adjust the position to the right of the screen
+    object.position.set(4, 0, -5); // 5 units to the right, and 5 units in front of the camera
+    object.scale.set(10, 10, 10); // Adjust the scale as needed
+
+    // Rotate the object to face the camera
+    object.rotation.set(0, THREE.MathUtils.degToRad(175), 0); // Rotate 90 degrees to face the camera
+    
+    // Parent the object to the camera so it moves with it
+    camera.add(object);
+    scene.add(camera); // Ensure the camera is added to the scene
+
+    toggleObject = object;
+    console.log('Object loaded and added to the camera.');
+  });
+  } else {
+    // Toggle visibility of the already-loaded object
+    isObjectVisible = !isObjectVisible;
+    toggleObject.visible = isObjectVisible;
+    console.log(`Object visibility toggled: ${isObjectVisible}`);
+  }
+}
+
+
+
+
 // Add event listeners for key presses
 document.addEventListener('keydown', (event) => {
   switch (event.key.toLowerCase()) {
@@ -368,6 +403,16 @@ document.addEventListener('keydown', (event) => {
     case 'b': //pogled strankse kamere
       console.log('stranski view');
       perspectiveCount += 1; // Toggle perspective view
+    case 'v'://prikaz displaya
+    console.log('Toggling display visibility');
+    if (!toggleObject) {
+      LoadDisplay(); // Load the object if not already loaded
+    } else {
+      isObjectVisible = !isObjectVisible;
+      toggleObject.visible = isObjectVisible; // Toggle visibility
+      console.log(`Display visibility: ${isObjectVisible}`);
+    }
+    break;
     case 'm': 
       toggleMenu(); // Call the toggleMenu function when "M" is pressed
   }
@@ -822,7 +867,7 @@ function animate() {
 
   // Update OrbitControls
   controls.update();
-
+  
   // Update camera movement (if necessary)
   updateCameraMovement();
 
