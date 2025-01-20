@@ -1058,30 +1058,35 @@ function animate() {
   }
 
   // Utility function: Handle stop-and-go behavior
-  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
+  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration, isVehicleType) {
     if (object.currentSpeed === undefined) object.currentSpeed = 0;
     if (object.takeOffCounter === undefined) object.takeOffCounter = 0;
-
+    
+    // Adjust stopping point based on vehicle type
+    const adjustedStoppingPoint = isVehicleType === 'cyclist' 
+        ? stoppingPoint + 0.5
+        : stoppingPoint;
+    
     if (!object.stopped) {
-      // Slow down to the stopping point
-      if (object.position.z > stoppingPoint) {
-        object.position.z -= Math.max(0.02, (object.position.z - stoppingPoint) * deceleration);
-      } else {
-        object.position.z = stoppingPoint;
-        object.stopped = true;
-      }
-    } else {
-      // Increment counter and start speeding up after stopping
-      object.takeOffCounter++;
-      if (object.takeOffCounter > 120) { // ~2 seconds at 60 FPS
-        if (object.currentSpeed < maxSpeed) {
-          object.currentSpeed += acceleration;
+        // Slow down to the stopping point
+        if (object.position.z > adjustedStoppingPoint) {
+            object.position.z -= Math.max(0.02, (object.position.z - adjustedStoppingPoint) * deceleration);
+        } else {
+            object.position.z = adjustedStoppingPoint;
+            object.stopped = true;
         }
-        object.position.z -= object.currentSpeed;
-      }
+    } else {
+        // Increment counter and start speeding up after stopping
+        object.takeOffCounter++;
+        if (object.takeOffCounter > 120) { // ~2 seconds at 60 FPS
+            if (object.currentSpeed < maxSpeed) {
+                object.currentSpeed += acceleration;
+            }
+            object.position.z -= object.currentSpeed;
+        }
     }
     gridBoundary(object, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-  }
+}
 
   // Scene-specific animations
   switch (activeScene) {
@@ -1132,8 +1137,8 @@ function animate() {
         objectToCheck = motorist;
         generateScenery();
 
-        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005); // Motorist accelerates slower
-        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.010); // Car accelerates slower
+        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005, "motorist"); // Motorist accelerates slower
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.010, "car"); // Car accelerates slower
       } else {
         console.log('Motorist or car not found.');
       }
@@ -1145,8 +1150,8 @@ function animate() {
         objectToCheck = cyclist;
         generateScenery();
 
-        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001); // Cyclist accelerates faster
-        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.1000); // Car accelerates slower
+        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001, "cyclist"); // Cyclist accelerates faster
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.1000, "car"); // Car accelerates slower
       } else {
         console.log('Cyclist or car not found.');
       }
