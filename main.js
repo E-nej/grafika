@@ -176,6 +176,8 @@ function initializeSideCamera() {
  sideCameraHelperCube = sideCameraHelperCube = new THREE.Mesh(
   new THREE.BoxGeometry(2, 2, 2), // Larger size
   new THREE.MeshBasicMaterial({ color: 0x00ff00 })
+
+  
 );
 
  // Match cube position with the side camera
@@ -444,6 +446,7 @@ document.addEventListener('keydown', (event) => {
     case 'b': //pogled strankse kamere
       console.log('stranski view');
       perspectiveCount += 1; // Toggle perspective view
+      break;
     case 'v'://prikaz displaya
     console.log('Toggling display visibility');
     if (!toggleObject) {
