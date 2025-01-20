@@ -28,8 +28,20 @@ client.on('connect', () => {
 
 client.on('message', (topic, message) => {
   if (topic === posTopic) {
-    const positions = JSON.parse(message.toString());
-    console.log('Received positions:', positions);
+    // Parse the incoming message, which contains the timestamp and sphereState
+    const { timestamp, sphereState } = JSON.parse(message.toString());
+    console.log('Received timestamp and sphereState:', timestamp, sphereState);
+
+    // Find the corresponding sphere based on the timestamp
+    const queueItem = screenshotQueue.find(item => item.timestamp === timestamp);
+
+    if (queueItem) {
+      // Update the sphere color based on the received sphereState
+      queueItem.sphere.material.color.set(sphereState); // `sphereState` should be a valid color (like "red", "blue", etc.)
+      console.log(`Updated sphere with timestamp ${timestamp} to color ${sphereState}`);
+    } else {
+      console.log(`No sphere found for timestamp ${timestamp}`);
+    }
   }
 });
 
@@ -184,7 +196,7 @@ function updateSideCamera() {
     sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(20))); // Look forward
 
         // Use the camera for rendering
-        renderer.render(scene, sideCamera);
+    renderer.render(scene, sideCamera);
 
     // Position the camera to the side of the car
     //sideCamera.position.copy(car.position);
@@ -201,7 +213,8 @@ initializeSideCamera();
 const screenshotTopic = 'threejs/screenshot';
 
 
-function resizeAndSendScreenshot(dataURL) {
+function resizeAndSendScreenshot(data) {
+  const dataURL = data.screenshot
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -222,8 +235,10 @@ function resizeAndSendScreenshot(dataURL) {
                 // Convert the resized canvas to Base64 (smaller image)
                 const resizedDataURL = canvas.toDataURL('image/png');
 
+                data.screenshot = resizedDataURL;
+
                 // Publish the resized Base64 image to MQTT
-                client.publish(screenshotTopic, dataURL, { qos: 1, retain: false }, (err) => {
+                client.publish(screenshotTopic, JSON.stringify(data), { qos: 1, retain: false }, (err) => {
                     if (err) {
                         console.error('Failed to send screenshot:', err);
                     } else {
@@ -233,11 +248,15 @@ function resizeAndSendScreenshot(dataURL) {
             };
 }
 
-function captureScreenshot(camera) {
+function captureScreenshot(camera, timestamp) {
   renderer.render(scene, camera); // Render the scene from the specified camera
-  const dataURL = renderer.domElement.toDataURL("image/png");
 
-  resizeAndSendScreenshot(dataURL);
+  const data = {
+    screenshot: renderer.domElement.toDataURL("image/png"),
+    timestamp: timestamp,
+  }
+
+  resizeAndSendScreenshot(data);
 }
 
 
@@ -1261,6 +1280,17 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 });
 
+const screenshotQueue = [];
+
+function createSphereAtPosition(position, color) {
+  const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16); // Adjust size and detail
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color });
+  const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  sphere.position.set(position.x, position.y, position.z);
+  scene.add(sphere);
+  return sphere;
+}
+
 // ===== Handle Start Button Click =====
 document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
@@ -1268,7 +1298,20 @@ document.getElementById("start").addEventListener("click", () => {
   activeScene = sceneId;
 
   setInterval(() => {
-    captureScreenshot(sideCamera);
+    const carPosition = car.position; // Assuming this function exists
+    const sphere = createSphereAtPosition(carPosition, "blue"); // Create blue sphere at car's position
+
+    // Capture screenshot
+    const timestamp = Date.now();
+
+    screenshotQueue.push({ timestamp, sphere });
+
+    if (screenshotQueue.length > 50) {
+      const { sphere: oldSphere } = screenshotQueue.shift(); // Remove first item
+      scene.remove(oldSphere); // Remove from scene
+    }
+
+    captureScreenshot(sideCamera, timestamp);
   }
   , 500);
 });
