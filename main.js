@@ -147,13 +147,30 @@ function initializeSideCamera() {
 }
 function updateSideCamera() {
   if (car) {
-    // Position the camera to the side of the car
-    sideCamera.position.copy(car.position);
-    sideCamera.position.x += 20; // Move it to the right of the car
-    sideCamera.lookAt(car.position); // Ensure it looks at the car
+    const carDirection = new THREE.Vector3();
+    car.getWorldDirection(carDirection); // Get the car's forward direction
+    const carRight = new THREE.Vector3().crossVectors(carDirection, new THREE.Vector3(0, 1, 0)).normalize(); // Get the right vector
+    
+    // Position the side camera relative to the car
+    const sideCameraPosition = car.position.clone()
+      .add(carRight.multiplyScalar(5)) // 5 units to the right
+      .add(new THREE.Vector3(0, 2, 0)); // 2 units upward
+    sideCamera.position.copy(sideCameraPosition);
 
-    // Update the cube position to match the side camera
-    sideCameraHelperCube.position.copy(sideCamera.position);
+    // Make the side camera look ahead of the car
+    sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(10)));
+
+    // Use the sideCamera for rendering
+    renderer.render(scene, sideCamera);
+
+
+
+    // Position the camera to the side of the car
+    //sideCamera.position.copy(car.position);
+    //sideCamera.position.x += 20; // Move it to the right of the car
+    //sideCamera.lookAt(car.position); // Ensure it looks at the car
+
+    
     //console.log('Updated Cube position:', sideCameraHelperCube.position);
   }
 }
@@ -197,7 +214,7 @@ function resizeAndSendScreenshot(dataURL) {
 
 function captureScreenshot(camera) {
   renderer.render(scene, camera); // Render the scene from the specified camera
-  const dataURL = renderer.domElement.toDataURL("image/bmp");
+  const dataURL = renderer.domElement.toDataURL("image/png");
 
   resizeAndSendScreenshot(dataURL);
 }
@@ -965,12 +982,12 @@ function animate() {
    // Camera behavior: anchor to the car and make it look at the car
    if (car) {
     // Adjust camera position relative to the car
-    if (perspectiveCount % numPerspectiv === 0) {
+    if (perspectiveCount % 4 === 0) {
       // Default OrbitControls behavior
       controls.minDistance = 2; // Minimum zoom distance
       controls.maxDistance = 50; // Maximum zoom distance
       renderer.render(scene, camera); // Use the main camera for rendering
-    } else if (perspectiveCount % numPerspectiv === 1) {
+    } else if (perspectiveCount % 4 === 1) {
       // Normal camera behavior
       controls.target.copy(car.position);
       controls.enableDamping = true; // Smooth movement
