@@ -46,6 +46,7 @@ const cyclistDeceleration = 0.0035;
 const cyclistMaxSpeed = 0.05; 
 
 let perspectiveCount= 0; // Track perspective view
+let numPerspectiv = 5;
 
 // materials
 const whiteMaterial = new THREE.MeshBasicMaterial({ color: 0x0000FF });
@@ -995,7 +996,7 @@ function animate() {
       controls.minDistance = 2; // Minimum zoom distance
       controls.maxDistance = 15; // Maximum zoom distance
       renderer.render(scene, camera); // Use the main camera for rendering
-    } else if (perspectiveCount % 4 === 2) {
+    } else if (perspectiveCount % 4=== 2) {
       // Side camera view (looking out of the car's window)
     // Offset to the side of the car (right side, relative to car's orientation)
     const carDirection = new THREE.Vector3();
@@ -1011,8 +1012,34 @@ function animate() {
     // Make the side camera look ahead of the car
     sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(10)));
 
-    // Use the sideCamera for rendering
-    renderer.render(scene, sideCamera);
+        // Use the camera for rendering
+        renderer.render(scene, camera);
+    } else if(perspectiveCount % numPerspectiv === 3){
+      // Front camera view (looking in the direction the car is going)
+        console.log('Frontal view');
+
+        
+        // Get the car's direction
+        const carDirection = new THREE.Vector3();
+        car.getWorldDirection(carDirection); // Get the car's forward direction
+
+        // Compute the leftward direction relative to the car
+        const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
+
+        // Position the front camera relative to the car
+        const frontCameraPosition = car.position.clone()
+          //.add(carDirection.multiplyScalar(10)) // 10 units ahead of the car
+          .add(carLeft.multiplyScalar(2)) // 2 units to the left of the car
+          .add(new THREE.Vector3(0, 0.5, 0)); // 1 unit upward to align with the car's height
+        camera.position.copy(frontCameraPosition);
+
+        // Make the camera look slightly to the left of the car's forward direction
+        camera.lookAt(car.position.clone()
+          .add(carDirection.multiplyScalar(20)) // Look forward
+          .add(carLeft.multiplyScalar(20))); // Look slightly left
+
+        // Use the camera for rendering
+        renderer.render(scene, camera);
     } else {
       // Rear camera view or another custom view
       const offset = new THREE.Vector3(0, 5, 10); // Adjust this vector to set your preferred distance
