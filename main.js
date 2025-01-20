@@ -371,6 +371,74 @@ function LoadDisplay(){
   }
 }
 
+function updateInfotainmentColor() {
+  if (!toggleObject) return; // Ensure the infotainment object is loaded
+
+  let color = 0xffffff; // Default color (white)
+
+  const proximityThreshold = 5; // Threshold distance for proximity checks
+  const sideProximityThreshold = 1.5; // Threshold for side proximity checks
+
+  // Calculate motorist distance
+  if (motorist) {
+    const motoristDistance = car.position.distanceTo(motorist.position);
+    console.log("Motorist Distance:", motoristDistance);
+
+    if (motoristDistance < proximityThreshold) {
+      color = 0x0000ff; // Blue if motorist is too close
+    }
+  }
+
+  // Calculate cyclist distances
+  if (cyclist) {
+    // Forward/Backward Proximity Check
+    const bikeredDistance = car.position.distanceTo(cyclist.position);
+    console.log("Cyclist Forward/Backward Distance:", bikeredDistance);
+
+    if (bikeredDistance < proximityThreshold) {
+      color = 0xff0000; // Red if cyclist is too close in the front/back
+    }
+
+    // Side Distance Check
+    const carDirection = new THREE.Vector3();
+    car.getWorldDirection(carDirection); // Get the car's forward direction
+
+    const bikeredToCar = cyclist.position.clone().sub(car.position); // Vector from car to cyclist
+
+    // Calculate side distance (perpendicular distance)
+    const sideDistanceVector = bikeredToCar.clone().sub(carDirection.multiplyScalar(bikeredToCar.dot(carDirection)));
+    const bikeredSideDistance = sideDistanceVector.length();
+
+    // Check if cyclist is to the side (not significantly forward or backward)
+    const forwardDot = bikeredToCar.dot(carDirection);
+    const isToSide = Math.abs(forwardDot) < proximityThreshold; // Adjust threshold for side checking
+
+    console.log("Cyclist Side Distance:", bikeredSideDistance);
+    console.log("Cyclist Forward Dot:", forwardDot);
+    console.log("Cyclist Is To Side:", isToSide);
+
+    if (isToSide && bikeredSideDistance < sideProximityThreshold) {
+      color = 0xffa500; // Orange if cyclist is too close on the side
+    }
+  }
+
+  // Ensure the object resets to white if no conditions are met
+  if (
+    (motorist && car.position.distanceTo(motorist.position) >= proximityThreshold) &&
+    (cyclist && car.position.distanceTo(cyclist.position) >= proximityThreshold) &&
+    (!cyclist || (Math.abs(car.position.clone().sub(cyclist.position).dot(new THREE.Vector3(1, 0, 0))) > sideProximityThreshold))
+  ) {
+    color = 0xffffff; // Reset to white
+  }
+
+  // Update infotainment object color
+  toggleObject.traverse((child) => {
+    if (child.isMesh) {
+      child.material.color.set(color);
+    }
+  });
+}
+
 // Add event listeners for key presses
 document.addEventListener('keydown', (event) => {
   switch (event.key.toLowerCase()) {
@@ -869,6 +937,7 @@ function animate() {
   // Update camera movement (if necessary)
   updateCameraMovement();
   updateSideCamera();
+ 
 
   // Early return if not animating
   if (!isAnimating) {
@@ -1003,7 +1072,7 @@ function animate() {
   if (isRightMouseDown && cyclist) {
     cyclist.position.x = (cyclist.position.x + 0.02) % roadWidth;
   }
-
+  
    // Camera behavior: anchor to the car and make it look at the car
    if (car) {
     // Adjust camera position relative to the car
@@ -1110,6 +1179,7 @@ function animate() {
     }
   }
   // Render the scene
+  updateInfotainmentColor();
   renderer.render(scene, camera);
 
   if (sideViewRenderTarget) {
