@@ -5,14 +5,44 @@ import mqtt from 'mqtt';
 import { Sky } from 'three/addons/objects/Sky.js';
 
 const client = mqtt.connect('ws://192.168.0.106:9001', {
-  clientId: 'threejs-client',
-  clean: false,
+  clientId: `threejs-client-${Math.random().toString(16).substr(2, 8)}`,
+  clean: true,
 });
 
-client.on("message", (topic, message) => {
-  // message is Buffer
-  console.log(message.toString());
-  client.end();
+const posTopic = 'threejs/detections'; 
+
+let subscribed = false;
+
+client.on('connect', () => {
+  if (!subscribed) {
+    client.subscribe(posTopic, (err) => {
+      if (err) {
+        console.error(`Failed to subscribe to topic ${posTopic}:`, err);
+      } else {
+        console.log(`Subscribed to topic ${posTopic}`);
+        subscribed = true;
+      }
+    });
+  }
+});
+
+client.on('message', (topic, message) => {
+  if (topic === posTopic) {
+    // Parse the incoming message, which contains the timestamp and sphereState
+    const { timestamp, sphereState } = JSON.parse(message.toString());
+    console.log('Received timestamp and sphereState:', timestamp, sphereState);
+
+    // Find the corresponding sphere based on the timestamp
+    const queueItem = screenshotQueue.find(item => item.timestamp === timestamp);
+
+    if (queueItem) {
+      // Update the sphere color based on the received sphereState
+      queueItem.sphere.material.color.set(sphereState); // `sphereState` should be a valid color (like "red", "blue", etc.)
+      console.log(`Updated sphere with timestamp ${timestamp} to color ${sphereState}`);
+    } else {
+      console.log(`No sphere found for timestamp ${timestamp}`);
+    }
+  }
 });
 
 const cameraSpeed = 0.2;
@@ -150,22 +180,23 @@ function initializeSideCamera() {
 function updateSideCamera() {
   if (car) {
     const carDirection = new THREE.Vector3();
-    car.getWorldDirection(carDirection); // Get the car's forward direction
-    const carRight = new THREE.Vector3().crossVectors(carDirection, new THREE.Vector3(0, 1, 0)).normalize(); // Get the right vector
-    
-    // Position the side camera relative to the car
+      car.getWorldDirection(carDirection); // Get the car's forward direction
+
+      // Compute the "left" vector for the car (invert the "right" vector)
+      const carLeft = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), carDirection).normalize(); // Get the left vector
+
+      // Position the side camera relative to the car (adjust these offsets as needed)
     const sideCameraPosition = car.position.clone()
-      .add(carRight.multiplyScalar(5)) // 5 units to the right
-      .add(new THREE.Vector3(0, 2, 0)); // 2 units upward
-    sideCamera.position.copy(sideCameraPosition);
+        .add(carLeft.multiplyScalar(1)) // 5 units to the left of the car
+        .add(new THREE.Vector3(0, 0.5, 0)) // 2 units upward
+        .add(carDirection.multiplyScalar(1)); // Move slightly forward (2 units)
+      sideCamera.position.copy(sideCameraPosition);
 
     // Make the side camera look ahead of the car
-    sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(10)));
+    sideCamera.lookAt(car.position.clone().add(carDirection.multiplyScalar(20))); // Look forward
 
-    // Use the sideCamera for rendering
+        // Use the camera for rendering
     renderer.render(scene, sideCamera);
-
-
 
     // Position the camera to the side of the car
     //sideCamera.position.copy(car.position);
@@ -182,7 +213,8 @@ initializeSideCamera();
 const screenshotTopic = 'threejs/screenshot';
 
 
-function resizeAndSendScreenshot(dataURL) {
+function resizeAndSendScreenshot(data) {
+  const dataURL = data.screenshot
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
 
@@ -203,8 +235,10 @@ function resizeAndSendScreenshot(dataURL) {
                 // Convert the resized canvas to Base64 (smaller image)
                 const resizedDataURL = canvas.toDataURL('image/png');
 
+                data.screenshot = resizedDataURL;
+
                 // Publish the resized Base64 image to MQTT
-                client.publish(screenshotTopic, resizedDataURL, { qos: 1, retain: false }, (err) => {
+                client.publish(screenshotTopic, JSON.stringify(data), { qos: 1, retain: false }, (err) => {
                     if (err) {
                         console.error('Failed to send screenshot:', err);
                     } else {
@@ -214,11 +248,15 @@ function resizeAndSendScreenshot(dataURL) {
             };
 }
 
-function captureScreenshot(camera) {
+function captureScreenshot(camera, timestamp) {
   renderer.render(scene, camera); // Render the scene from the specified camera
-  const dataURL = renderer.domElement.toDataURL("image/png");
 
-  resizeAndSendScreenshot(dataURL);
+  const data = {
+    screenshot: renderer.domElement.toDataURL("image/png"),
+    timestamp: timestamp,
+  }
+
+  resizeAndSendScreenshot(data);
 }
 
 
@@ -235,6 +273,7 @@ function addGrassPlane(zPosition = 0) {
   
   const grassMaterial = new THREE.MeshStandardMaterial({
     map: grassTexture,
+    receiveShadow: true,
   });
 
   const grassPlane = new THREE.Mesh(planeGeometry, grassMaterial); // Create a new grass plane
@@ -350,11 +389,7 @@ function LoadDisplay(){
   if (!toggleObject) {
     // Load the object only once
    // Load the object only once
-   const startTime = performance.now();
     nalagalnik.load('./models/infotainment.obj', (object) => {
-    const endTime = performance.now();
-    const loadTime = endTime - startTime; // Calculate the load time in milliseconds
-  //console.log(`cas nalaganja: ${loadTime}`);
     // Adjust the position to the right of the screen
     object.position.set(4, 0, -5); // 5 units to the right, and 5 units in front of the camera
     object.scale.set(10, 10, 10); // Adjust the scale as needed
@@ -369,7 +404,6 @@ function LoadDisplay(){
     toggleObject = object;
     console.log('Object loaded and added to the camera.');
   });
-  
   } else {
     // Toggle visibility of the already-loaded object
     isObjectVisible = !isObjectVisible;
@@ -564,11 +598,8 @@ startButton.addEventListener('click', () => {
 function createRoadTile(position, roadMaterial) {
   const objLoader = new OBJLoader();
   const roadTile = new THREE.Group();  // Use a group to hold the road section
-  const startTime = performance.now(); // Record start time
+
   objLoader.load('./models/cesta.obj', (object) => {
-    const endTime = performance.now(); // Record end time after loading
-        const loadTime = endTime - startTime; // Calculate the load time
-        console.log(`Object cesta loaded in ${loadTime.toFixed(2)} ms`);
     if (!object) {
       console.error('Failed to load the cesta.obj file.');
       return;
@@ -720,7 +751,7 @@ function generateTrees(scene, numTrees, roadWidth, roadLength, worldSize) {
     }
 
     const tree = createTree();
-    tree.position.set(x, 0, z);
+    tree.position.set(x, 0.5, z);
     tree.castShadow = true; // Allow the tree to cast shadows
     scene.add(tree);
 
@@ -790,6 +821,9 @@ function startAnimation(sceneId, distance) {
   createInitialRoad();
   generateGrassPlanes();
 
+  const lakePosition = { x: 25, y: 0.01, z: -30 };
+  const lake = addIrregularLake(lakePosition);
+
   lastGrassZPosition = 0;
 
   const objLoader = new OBJLoader();
@@ -797,11 +831,7 @@ function startAnimation(sceneId, distance) {
   const motoristTexture = new THREE.TextureLoader().load('./textures/test-mesh2.jpg');
 
   // Load avto.obj
-  const startTime = performance.now();
   objLoader.load('./models/avto.obj', (object) => {
-    const endTime = performance.now(); // Record end time after loading
-    const loadTime = endTime - startTime; // Calculate the load time
-    //console.log(`Object loaded in ${loadTime.toFixed(2)} ms`);
     console.log('Car model loaded:', object);
     centerAndScaleObject(object, 0.3); // Scale and center the model
     object.traverse((child) => {
@@ -826,11 +856,7 @@ function startAnimation(sceneId, distance) {
 
   if (sceneId % 2 === 0) {
     // Load bikered.obj
-    const startTime2 = performance.now();
     objLoader.load('./models/bikered.obj', (object) => {
-      const endTime2 = performance.now(); // Record end time after loading
-      const loadTime2 = endTime2 - startTime2; // Calculate the load time
-      //console.log(`Object loaded in ${loadTime2.toFixed(2)} ms`);
     centerAndScaleObject(object, 0.3); // Scale up the cyclist
     object.traverse((child) => {
       if (child.isMesh) {
@@ -847,11 +873,7 @@ function startAnimation(sceneId, distance) {
   });
   } else {
     // Load motorist.obj
-    const startTime3 = performance.now();
     objLoader.load('./models/motorist.obj', (object) => {
-      const endTime3 = performance.now(); // Record end time after loading
-      const loadTime3 = endTime3 - startTime3; // Calculate the load time
-     // console.log(`Object loaded in ${loadTime3.toFixed(2)} ms`);
       console.log('Motorist model loaded:', object);
     centerAndScaleObject(object, 0.3); // Scale up the motorist
     object.traverse((child) => {
@@ -874,11 +896,11 @@ function startAnimation(sceneId, distance) {
   const selectedMap = mapsElement.value;
 
   switch (selectedMap) {
-    case '1': 
-      generateBuildings(scene, numBuildings, roadWidth, roadLength);
-      break;
-    case '2':
+    case '1':
       generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
+      break;
+    case '2': 
+      generateBuildings(scene, numBuildings, roadWidth, roadLength);
       break;
     }
 }
@@ -989,6 +1011,33 @@ function generateGrassPlanes() {
     }
 }
 
+// ===== LAKE =====
+function addIrregularLake(position = { x: 0, y: 0, z: 0 }) {
+  // Create a custom shape for the lake
+  const lakeShape = new THREE.Shape();
+  lakeShape.moveTo(0, 0);
+  lakeShape.quadraticCurveTo(7, 7, 14, 5); // Curve to the right
+  lakeShape.bezierCurveTo(20, -10, 15, -15, 8, -11); // Complex curve
+  lakeShape.quadraticCurveTo(0, -7, 0, 0); // Close the shape
+
+  // Extrude the shape to create a 2D plane
+  const lakeGeometry = new THREE.ShapeGeometry(lakeShape);
+  const lakeMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1E90FF,
+    roughness: 0.5,  
+    metalness: 0.5,  
+    transparent: true,
+  });
+
+  const lake = new THREE.Mesh(lakeGeometry, lakeMaterial);
+  lake.rotation.x = -Math.PI / 2; // Lay flat
+  lake.position.set(position.x, position.y, position.z); // Position the lake
+  lake.receiveShadow = true; // Enable shadows on the lake
+
+  scene.add(lake);
+  return lake;
+}
+
 // ===== Animation Loop =====
 function animate() {
   requestAnimationFrame(animate);
@@ -1028,30 +1077,35 @@ function animate() {
   }
 
   // Utility function: Handle stop-and-go behavior
-  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration) {
+  function handleStopAndGo(object, maxSpeed, deceleration, stoppingPoint, acceleration, isVehicleType) {
     if (object.currentSpeed === undefined) object.currentSpeed = 0;
     if (object.takeOffCounter === undefined) object.takeOffCounter = 0;
-
+    
+    // Adjust stopping point based on vehicle type
+    const adjustedStoppingPoint = isVehicleType === 'cyclist' 
+        ? stoppingPoint - 0.75
+        : stoppingPoint;
+    
     if (!object.stopped) {
-      // Slow down to the stopping point
-      if (object.position.z > stoppingPoint) {
-        object.position.z -= Math.max(0.02, (object.position.z - stoppingPoint) * deceleration);
-      } else {
-        object.position.z = stoppingPoint;
-        object.stopped = true;
-      }
-    } else {
-      // Increment counter and start speeding up after stopping
-      object.takeOffCounter++;
-      if (object.takeOffCounter > 120) { // ~2 seconds at 60 FPS
-        if (object.currentSpeed < maxSpeed) {
-          object.currentSpeed += acceleration;
+        // Slow down to the stopping point
+        if (object.position.z > adjustedStoppingPoint) {
+            object.position.z -= Math.max(0.02, (object.position.z - adjustedStoppingPoint) * deceleration);
+        } else {
+            object.position.z = adjustedStoppingPoint;
+            object.stopped = true;
         }
-        object.position.z -= object.currentSpeed;
-      }
+    } else {
+        // Increment counter and start speeding up after stopping
+        object.takeOffCounter++;
+        if (object.takeOffCounter > 120) { // ~2 seconds at 60 FPS
+            if (object.currentSpeed < maxSpeed) {
+                object.currentSpeed += acceleration;
+            }
+            object.position.z -= object.currentSpeed;
+        }
     }
     gridBoundary(object, MIN_BOUNDARY_Z, MAX_BOUNDARY_Z);
-  }
+}
 
   // Scene-specific animations
   switch (activeScene) {
@@ -1102,8 +1156,8 @@ function animate() {
         objectToCheck = motorist;
         generateScenery();
 
-        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005); // Motorist accelerates slower
-        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.010); // Car accelerates slower
+        handleStopAndGo(motorist, motoristMaxSpeed, motorbikeDeceleration, stoppingPoint, 0.005, "motorist"); // Motorist accelerates slower
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.010, "car"); // Car accelerates slower
       } else {
         console.log('Motorist or car not found.');
       }
@@ -1115,8 +1169,8 @@ function animate() {
         objectToCheck = cyclist;
         generateScenery();
 
-        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001); // Cyclist accelerates faster
-        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.1000); // Car accelerates slower
+        handleStopAndGo(cyclist, cyclistMaxSpeed, cyclistDeceleration, stoppingPoint, 0.001, "cyclist"); // Cyclist accelerates faster
+        handleStopAndGo(car, carMaxSpeed, carDeceleration, stoppingPoint, 0.1000, "car"); // Car accelerates slower
       } else {
         console.log('Cyclist or car not found.');
       }
@@ -1261,6 +1315,17 @@ window.addEventListener('resize', () => {
   camera.updateProjectionMatrix();
 });
 
+const screenshotQueue = [];
+
+function createSphereAtPosition(position, color) {
+  const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16); // Adjust size and detail
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color });
+  const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  sphere.position.set(position.x, position.y, position.z);
+  scene.add(sphere);
+  return sphere;
+}
+
 // ===== Handle Start Button Click =====
 document.getElementById("start").addEventListener("click", () => {
   const sceneId = parseInt(document.getElementById("scene").value, 10);
@@ -1268,7 +1333,20 @@ document.getElementById("start").addEventListener("click", () => {
   activeScene = sceneId;
 
   setInterval(() => {
-    captureScreenshot(sideCamera);
+    const carPosition = car.position; // Assuming this function exists
+    const sphere = createSphereAtPosition(carPosition, "blue"); // Create blue sphere at car's position
+
+    // Capture screenshot
+    const timestamp = Date.now();
+
+    screenshotQueue.push({ timestamp, sphere });
+
+    if (screenshotQueue.length > 50) {
+      const { sphere: oldSphere } = screenshotQueue.shift(); // Remove first item
+      scene.remove(oldSphere); // Remove from scene
+    }
+
+    captureScreenshot(sideCamera, timestamp);
   }
-  , 500);
+  , 250);
 });
