@@ -896,11 +896,11 @@ function startAnimation(sceneId, distance) {
   const selectedMap = mapsElement.value;
 
   switch (selectedMap) {
-    case '1': 
-      generateBuildings(scene, numBuildings, roadWidth, roadLength);
-      break;
-    case '2':
+    case '1':
       generateTrees(scene, numTrees, roadWidth, roadLength, worldSize);
+      break;
+    case '2': 
+      generateBuildings(scene, numBuildings, roadWidth, roadLength);
       break;
     }
 }
@@ -1083,7 +1083,7 @@ function animate() {
     
     // Adjust stopping point based on vehicle type
     const adjustedStoppingPoint = isVehicleType === 'cyclist' 
-        ? stoppingPoint + 0.5
+        ? stoppingPoint - 0.75
         : stoppingPoint;
     
     if (!object.stopped) {
