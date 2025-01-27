@@ -103,7 +103,7 @@ const ambientLight = new THREE.AmbientLight(0xffffff, 1); // Soft white light
 scene.add(ambientLight);
 
 // Add a directional light to simulate the sun or another strong light source
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
 directionalLight.position.set(10, 20, 10); // Position the light above and to the side
 directionalLight.castShadow = true; // Enable shadows for this light
 directionalLight.shadow.mapSize.width = 2048; // Shadow quality (higher is better, but slower)
@@ -415,6 +415,8 @@ function LoadDisplay(){
 // MQTT topic for infotainment color
 const infotainmentColorTopic = 'car/infotainment/color';
 
+
+  
 function updateInfotainmentColor() {
   if (!toggleObject) return; // Ensure the infotainment object is loaded
 
