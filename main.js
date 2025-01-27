@@ -210,6 +210,9 @@ function updateSideCamera() {
 
 initializeSideCamera();
 
+
+
+
 const screenshotTopic = 'threejs/screenshot';
 
 
@@ -834,7 +837,8 @@ function startAnimation(sceneId, distance) {
   lastGrassZPosition = 0;
 
   const objLoader = new OBJLoader();
-  const carTexture = new THREE.TextureLoader().load('./textures/car-texture.jpg');
+  const carTexture = new THREE.TextureLoader().load('./textures/test-mesh3.jpg');
+  
   const motoristTexture = new THREE.TextureLoader().load('./textures/test-mesh2.jpg');
 
   // Load avto.obj
@@ -850,6 +854,9 @@ function startAnimation(sceneId, distance) {
         //child.material = whiteMaterial; // Apply white material
         child.material = new THREE.MeshStandardMaterial({
           map: carTexture, // Use the loaded texture
+         // color: 0x0000ff, // Blue color    // Red overlay 0xff0000, 
+          //transparent: true,    // Enable transparency if blending is needed
+          opacity: 0.5,    
         });
         child.castShadow = true; // Allow the car to cast shadows
       }
