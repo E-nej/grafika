@@ -414,8 +414,7 @@ function LoadDisplay(){
 
 // MQTT topic for infotainment color
 const infotainmentColorTopic = 'car/infotainment/color';
-
-
+let lastPublishedColor = 'white';
   
 function updateInfotainmentColor() {
   if (!toggleObject) return; // Ensure the infotainment object is loaded
@@ -482,7 +481,11 @@ function updateInfotainmentColor() {
   else if (color === 0xff0000) colorName = 'red';
   else if (color === 0xffa500) colorName = 'orange';
 
-  mqttClient.publish(infotainmentColorTopic, colorName);
+  if (colorName !== lastPublishedColor) {
+    mqttClient.publish(infotainmentColorTopic, colorName);
+    console.log(`Published new color: ${colorName}`);
+    lastPublishedColor = colorName; 
+  }
 
   // Update infotainment object color
   toggleObject.traverse((child) => {
@@ -1379,5 +1382,5 @@ document.getElementById("start").addEventListener("click", () => {
 
     captureScreenshot(sideCamera, timestamp);
   }
-  , 250);
+  , 1000);
 });
