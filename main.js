@@ -57,7 +57,6 @@ const keys = {
   d: false,
 };
 
-
 //vairables for drwaing car tracks
 let carTrackLine; // Line representing the car's track
 let trackPoints = []; // Array to hold track points
@@ -147,11 +146,9 @@ controls.minDistance = 5;
 //const axesHelper = new THREE.AxesHelper(5);
 //scene.add(axesHelper);
 
-
 let sideCamera; // To hold the side camera
 let sideViewRenderTarget; // (Optional) To hold the render target for off-screen rendering
 let sideCameraHelperCube; // Declare the variable
-
 
 function initializeSideCamera() {
  // Create the side camera
@@ -210,11 +207,7 @@ function updateSideCamera() {
 
 initializeSideCamera();
 
-
-
-
 const screenshotTopic = 'threejs/screenshot';
-
 
 function resizeAndSendScreenshot(data) {
   const dataURL = data.screenshot
@@ -261,7 +254,6 @@ function captureScreenshot(camera, timestamp) {
 
   resizeAndSendScreenshot(data);
 }
-
 
 let grassPlanes = [];
 
@@ -323,6 +315,7 @@ function getPositions() {
 
   return positions;
 }
+
 function sendPositions() {
   const positions = getPositions();
 
@@ -419,6 +412,9 @@ function LoadDisplay(){
   }
 }
 
+// MQTT topic for infotainment color
+const infotainmentColorTopic = 'car/infotainment/color';
+
 function updateInfotainmentColor() {
   if (!toggleObject) return; // Ensure the infotainment object is loaded
 
@@ -478,6 +474,13 @@ function updateInfotainmentColor() {
   ) {
     color = 0xffffff; // Reset to white
   }
+
+  let colorName = 'white';
+  if (color === 0x0000ff) colorName = 'blue';
+  else if (color === 0xff0000) colorName = 'red';
+  else if (color === 0xffa500) colorName = 'orange';
+
+  mqttClient.publish(infotainmentColorTopic, colorName);
 
   // Update infotainment object color
   toggleObject.traverse((child) => {
