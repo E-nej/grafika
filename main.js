@@ -489,8 +489,10 @@ function updateInfotainmentColor() {
 
   // Update infotainment object color
   toggleObject.traverse((child) => {
-    if (child.isMesh) {
+    if (child.isMesh && child.material && child.material.color) {
       child.material.color.set(color);
+    } else {
+      console.warn("Non-mesh or incompatible object encountered:", child);
     }
   });
 }
